@@ -7,6 +7,6 @@ This is my "check out / learn Rust" project, so the code quality is most likely 
 The bot expects a file named `token.conf` in the working directory, which contains your Discord bot token.
 
 ### Basic commands
-`!modules` - view information about modules and their commands.
-`!commands` - list all available commands.
-`!help <command>` - get help for a given command.
+- `!modules` - view information about modules and their commands.
+- `!commands` - list all available commands.
+- `!help <command>` - get help for a given command.
