@@ -24,7 +24,6 @@ mod modules {
 	pub mod hello;
 	pub mod modules;
 	pub mod fraktur;
-	pub mod money;
 	pub mod speedruncom;
 	pub mod wolframalpha;
 }
