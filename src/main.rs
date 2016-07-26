@@ -9,9 +9,11 @@ extern crate xml;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use std::sync::Arc;
+use std::thread;
 
 extern crate discord;
-use discord::{Discord, State};
+use discord::{ChannelRef, Discord, State};
 use discord::model::*;
 
 mod module;
@@ -78,28 +80,50 @@ fn parse_command(message: &str) -> Option<(&str, &str)> {
 	}
 }
 
+fn handle_command(bot: &Arc<Bot>, message: &Arc<Message>, command: &str, text: &str) {
+	let command = command.to_lowercase();
+
+	for m in bot.get_modules() {
+		for (&id, &cmds) in m.commands() {
+			if let Some(_) = cmds.iter().find(|&&x| x == command) {
+				let m_ref = m.clone();
+				let bot_ref = bot.clone();
+				let message_ref = message.clone();
+				let text_copy = text.to_string();
+
+				thread::spawn(move || {
+					m_ref.handle(&bot_ref, &message_ref, id, &text_copy);
+				});
+
+				return;
+			}
+		}
+	}
+}
+
 fn main() {
 	// Read the token from the file.
 	let token = read_file("token.conf").expect("Error reading token.conf");
 
 	// Log in to the API.
-	let discord = Discord::from_bot_token(&token).expect("Login failed");
+	let discord = Arc::new(Discord::from_bot_token(&token).expect("Login failed"));
 
 	// Connect.
 	let (mut connection, ready) = discord.connect().expect("Connect failed");
 	println!("[Ready] {} is serving {} servers.", ready.user.username, ready.servers.len());
 	let mut state = State::new(ready);
 
-	let bot = Bot::new(&discord, vec![
-		Box::new(modules::hello::Module::new()),
-		Box::new(modules::modules::Module::new()),
-		Box::new(modules::fraktur::Module::new()),
-		Box::new(modules::speedruncom::Module::new())/*,
-		Box::new(modules::wolframalpha::Module::new())*/
+	let mut modules: Vec<Arc<Module>> = Vec::new();
+	modules.push(Arc::new(modules::hello::Module::new()));
+	modules.push(Arc::new(modules::modules::Module::new()));
+	modules.push(Arc::new(modules::money::Module::new()));
+	modules.push(Arc::new(modules::fraktur::Module::new()));
+	modules.push(Arc::new(modules::speedruncom::Module::new()));
+	modules.push(Arc::new(modules::wolframalpha::Module::new()));
+	// The Wolfram!Alpha module requires an app-id to work.
+	// Place your app-id into the appropriate spot inside modules/wolframalpha.rs.
 
-		// The Wolfram!Alpha module requires an app-id to work.
-		// Place your app-id into the appropriate spot inside modules/wolframalpha.rs.
-	]);
+	let bot = Arc::new(Bot::new(discord.clone(), modules));
 
 	// Main loop.
 	loop {
@@ -132,21 +156,29 @@ fn main() {
 					continue
 				}
 
-				println!("Message by `{}` ({}): `{}`", message.author.name, message.author.id.0, message.content);
+				match state.find_channel(&message.channel_id) {
+					Some(ChannelRef::Public(server, channel)) => {
+						println!("[`{}` `#{}`] `{}`: `{}`", server.name, channel.name, message.author.name, message.content);
+					}
 
-				if let Some((command, text)) = parse_command(&message.content) {
-					let command = command.to_lowercase();
-
-					'outer: for m in bot.get_modules() {
-						for (&id, &cmds) in m.commands() {
-							if let Some(_) = cmds.iter().find(|&&x| x == command) {
-								m.handle(&bot, &message, id, text);
-								break 'outer;
-							}
+					Some(ChannelRef::Private(channel)) => {
+						if message.author.name == channel.recipient.name {
+							println!("[Private] `{}`: `{}`", message.author.name, message.content);
+						} else {
+							println!("[Private] To `{}`: `{}`", channel.recipient.name, message.content);
 						}
 					}
+
+					None => println!("[Unknown Channel] `{}`: `{}`", message.author.name, message.content)
+				}
+
+				let message_shared = Arc::new(message);
+
+				if let Some((command, text)) = parse_command(&message_shared.content) {
+					handle_command(&bot, &message_shared, command, text);
 				}
 			}
+
 			_ => {} // Discard other events.
 		}
 	}

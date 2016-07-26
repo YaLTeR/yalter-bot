@@ -128,7 +128,11 @@ impl<'a> Module<'a> {
 		};
 
 		if text.len() == 0 {
-			bot.send(&message.channel_id, "Please give me a command!");
+			bot.send(
+				&message.channel_id,
+				"`!mods` - list modules!\n\
+				 `!mod <name>` - list commands of a module!\n\
+				 `!help <command>` - help for a command!");
 			return;
 		}
 

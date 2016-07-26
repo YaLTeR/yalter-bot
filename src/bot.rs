@@ -4,18 +4,19 @@ use discord::model::*;
 use hyper::status::StatusCode;
 use module::Module;
 use std::io::Read;
+use std::sync::Arc;
 
-pub struct Bot<'a> {
-	discord: &'a Discord,
-	modules: Vec<Box<Module>>
+pub struct Bot {
+	discord: Arc<Discord>,
+	modules: Vec<Arc<Module>>
 }
 
-impl<'a> Bot<'a> {
-	pub fn new(discord: &'a Discord, modules: Vec<Box<Module>>) -> Self {
+impl Bot {
+	pub fn new(discord: Arc<Discord>, modules: Vec<Arc<Module>>) -> Self {
 		Bot { discord: discord, modules: modules }
 	}
 
-	pub fn get_modules(&self) -> &Vec<Box<Module>> {
+	pub fn get_modules(&self) -> &Vec<Arc<Module>> {
 		&self.modules
 	}
 
