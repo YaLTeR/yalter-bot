@@ -130,9 +130,14 @@ impl<'a> Module<'a> {
 		if text.len() == 0 {
 			bot.send(
 				&message.channel_id,
-				"`!mods` - list modules!\n\
-				 `!mod <name>` - list commands of a module!\n\
-				 `!help <command>` - help for a command!");
+				&format!(
+					"Bot version {} using **discord-rs**.\n\
+					 `!mods` - list modules!\n\
+					 `!mod <name>` - list commands of a module!\n\
+					 `!help <command>` - help for a command!",
+					env!("CARGO_PKG_VERSION")
+				)
+			);
 			return;
 		}
 

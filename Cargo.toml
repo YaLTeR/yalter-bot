@@ -1,12 +1,13 @@
 [package]
 name = "yalter-bot"
-version = "0.1.0"
+version = "0.2.1"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 
 [dependencies]
 discord = { git = "https://github.com/SpaceManiac/discord-rs.git" }
 hyper = "0.7"
 lazy_static = "0.2"
+rand = "0.3"
 regex = "0.1"
 serde_json = "0.7"
 url = { git = "https://github.com/servo/rust-url" }

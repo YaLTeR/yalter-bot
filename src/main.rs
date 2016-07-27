@@ -1,6 +1,7 @@
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
+extern crate rand;
 extern crate regex;
 extern crate serde_json;
 extern crate url;
@@ -28,6 +29,7 @@ mod modules {
 	pub mod fraktur;
 	pub mod speedruncom;
 	pub mod wolframalpha;
+	pub mod invite;
 }
 
 fn read_file(filename: &str) -> Result<String, io::Error> {
@@ -116,12 +118,17 @@ fn main() {
 	let mut modules: Vec<Arc<Module>> = Vec::new();
 	modules.push(Arc::new(modules::hello::Module::new()));
 	modules.push(Arc::new(modules::modules::Module::new()));
-	modules.push(Arc::new(modules::money::Module::new()));
 	modules.push(Arc::new(modules::fraktur::Module::new()));
 	modules.push(Arc::new(modules::speedruncom::Module::new()));
-	modules.push(Arc::new(modules::wolframalpha::Module::new()));
+
 	// The Wolfram!Alpha module requires an app-id to work.
 	// Place your app-id into the appropriate spot inside modules/wolframalpha.rs.
+	// modules.push(Arc::new(modules::wolframalpha::Module::new()));
+
+	// The Invite module requires a bot client ID to work.
+	// Get it from https://discordapp.com/developers/applications/me
+	// Place your client ID into the appropriate spot inside modules/invite.rs.
+	// modules.push(Arc::new(modules::invite::Module::new()));
 
 	let bot = Arc::new(Bot::new(discord.clone(), modules));
 

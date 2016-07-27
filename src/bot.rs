@@ -29,6 +29,28 @@ impl Bot {
 				false));
 	}
 
+	pub fn send_pm(&self, user: &UserId, text: &str, error_reporting_channel: &ChannelId) {
+		match self.discord.create_private_channel(user) {
+			Ok(private_channel) => {
+				self.handle_error(error_reporting_channel,
+					self.discord.send_message(
+						&private_channel.id,
+						text,
+						"",
+						false));
+			},
+
+			Err(err) => {
+				self.handle_error(error_reporting_channel,
+					self.discord.send_message(
+						error_reporting_channel,
+						&format!("Error creating a private channel: `{:?}`.", err),
+						"",
+						false));
+			}
+		}
+	}
+
 	pub fn send_file<R: Read>(&self, channel: &ChannelId, text: &str, file: R, filename: &str) {
 		self.handle_error(channel,
 			self.discord.send_file(

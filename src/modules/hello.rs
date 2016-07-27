@@ -1,6 +1,8 @@
 use bot::Bot;
 use discord::model::Message;
 use module;
+use rand;
+use rand::distributions::{IndependentSample, Range};
 use std::collections::hash_map::HashMap;
 
 pub struct Module<'a> {
@@ -40,6 +42,15 @@ impl<'a> module::Module for Module<'a> {
 	}
 
 	fn handle(&self, bot: &Bot, message: &Message, _id: u32, _text: &str) {
-		bot.send(&message.channel_id, format!("Hi, <@{}>!", message.author.id.0).as_str());
+		let emojis: [&'static str; 22] = [
+			"👌", "👌🏻", "👌🏼", "👌🏽", "👌🏾", "👌🏿",
+			"👍", "👍🏻", "👍🏼", "👍🏽", "👍🏾", "👍🏿",
+			"🌝", "😄", "🔥", "💯", "🆒", "🚽", "🚾", "❤", "⚠", "✅"
+		];
+
+		let mut rng = rand::thread_rng();
+		let index = Range::new(0, emojis.len()).ind_sample(&mut rng);
+
+		bot.send(&message.channel_id, &format!("Hi, {}! {}", message.author.mention(), emojis[index]));
 	}
 }
