@@ -26,7 +26,7 @@ use bot::Bot;
 mod modules {
 	pub mod hello;
 	pub mod modules;
-	pub mod fraktur;
+	pub mod fun;
 	pub mod speedruncom;
 	pub mod wolframalpha;
 	pub mod invite;
@@ -118,7 +118,7 @@ fn main() {
 	let mut modules: Vec<Arc<Module>> = Vec::new();
 	modules.push(Arc::new(modules::hello::Module::new()));
 	modules.push(Arc::new(modules::modules::Module::new()));
-	modules.push(Arc::new(modules::fraktur::Module::new()));
+	modules.push(Arc::new(modules::fun::Module::new()));
 	modules.push(Arc::new(modules::speedruncom::Module::new()));
 
 	// The Wolfram!Alpha module requires an app-id to work.
