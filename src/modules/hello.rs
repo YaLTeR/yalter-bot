@@ -15,7 +15,7 @@ enum Commands {
 
 impl<'a> module::Module for Module<'a> {
 	fn new() -> Self {
-		static HELLO: [&'static str; 1] = [ "hello" ];
+		static HELLO: [&'static str; 2] = [ "hello", "hi" ];
 		let mut map: HashMap<u32, &[&str]> = HashMap::new();
 		map.insert(Commands::Hello as u32, &HELLO);
 		Module { commands: map }

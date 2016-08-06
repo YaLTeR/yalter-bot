@@ -1,8 +1,10 @@
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 extern crate rand;
 extern crate regex;
+extern crate serde;
 extern crate serde_json;
 extern crate url;
 extern crate xml;
@@ -14,14 +16,14 @@ use std::sync::Arc;
 use std::thread;
 
 extern crate discord;
-use discord::{ChannelRef, Discord, State};
+use discord::{ChannelRef, Discord};
 use discord::model::*;
 
 mod module;
 use module::Module;
 
 mod bot;
-use bot::Bot;
+use bot::*;
 
 mod modules {
 	pub mod hello;
@@ -30,6 +32,7 @@ mod modules {
 	pub mod speedruncom;
 	pub mod wolframalpha;
 	pub mod invite;
+	pub mod admin;
 }
 
 fn read_file(filename: &str) -> Result<String, io::Error> {
@@ -82,25 +85,37 @@ fn parse_command(message: &str) -> Option<(&str, &str)> {
 	}
 }
 
-fn handle_command(bot: &Arc<Bot>, message: &Arc<Message>, command: &str, text: &str) {
+fn handle_command(bot: Arc<Bot>, message: Arc<Message>, command: &str, text: &str) {
 	let command = command.to_lowercase();
 
-	for m in bot.get_modules() {
-		for (&id, &cmds) in m.commands() {
+	let mut index = None;
+
+	'outer: for i in 0..bot.get_modules().len() {
+		let module = &bot.get_modules()[i];
+
+		for (&id, &cmds) in module.commands() {
 			if let Some(_) = cmds.iter().find(|&&x| x == command) {
-				let m_ref = m.clone();
-				let bot_ref = bot.clone();
-				let message_ref = message.clone();
-				let text_copy = text.to_string();
-
-				thread::spawn(move || {
-					m_ref.handle(&bot_ref, &message_ref, id, &text_copy);
-				});
-
-				return;
+				index = Some((i, id));
+				break 'outer;
 			}
 		}
 	}
+
+	if let Some((i, id)) = index {
+		let text_copy = text.to_string();
+
+		thread::spawn(move || {
+			bot.get_modules()[i].handle(&bot, &message, id, &text_copy);
+		});
+	}
+}
+
+fn handle_attachment(bot: Arc<Bot>, message: Arc<Message>) {
+	thread::spawn(move || {
+		for module in bot.get_modules() {
+			module.handle_attachment(&bot, &message);
+		}
+	});
 }
 
 fn main() {
@@ -108,56 +123,39 @@ fn main() {
 	let token = read_file("token.conf").expect("Error reading token.conf");
 
 	// Log in to the API.
-	let discord = Arc::new(Discord::from_bot_token(&token).expect("Login failed"));
+	let discord = Discord::from_bot_token(&token).expect("Login failed");
 
-	// Connect.
-	let (mut connection, ready) = discord.connect().expect("Connect failed");
-	println!("[Ready] {} is serving {} servers.", ready.user.username, ready.servers.len());
-	let mut state = State::new(ready);
-
-	let mut modules: Vec<Arc<Module>> = Vec::new();
-	modules.push(Arc::new(modules::hello::Module::new()));
-	modules.push(Arc::new(modules::modules::Module::new()));
-	modules.push(Arc::new(modules::fun::Module::new()));
-	modules.push(Arc::new(modules::speedruncom::Module::new()));
+	let mut modules: Vec<Box<Module>> = Vec::new();
+	modules.push(Box::new(modules::hello::Module::new()));
+	modules.push(Box::new(modules::modules::Module::new()));
+	modules.push(Box::new(modules::fun::Module::new()));
+	modules.push(Box::new(modules::speedruncom::Module::new()));
+	modules.push(Box::new(modules::admin::Module::new()));
 
 	// The Wolfram!Alpha module requires an app-id to work.
 	// Place your app-id into the appropriate spot inside modules/wolframalpha.rs.
-	// modules.push(Arc::new(modules::wolframalpha::Module::new()));
+	// modules.push(Box::new(modules::wolframalpha::Module::new()));
 
 	// The Invite module requires a bot client ID to work.
 	// Get it from https://discordapp.com/developers/applications/me
 	// Place your client ID into the appropriate spot inside modules/invite.rs.
-	// modules.push(Arc::new(modules::invite::Module::new()));
+	// modules.push(Box::new(modules::invite::Module::new()));
 
-	let bot = Arc::new(Bot::new(discord.clone(), modules));
+	let mut bot = BotThreadUnsafe::new(discord, modules);
 
 	// Main loop.
 	loop {
-		let event = match connection.recv_event() {
-			Ok(event) => event,
-			Err(err) => {
-				println!("[Warning] Receive error: {:?}.", err);
-
-				match err {
-					discord::Error::WebSocket(..) => {
-						// The connection was dropped, try to reconnect.
-						let (new_connection, ready) = discord.connect().expect("Connect failed");
-						connection = new_connection;
-						state = State::new(ready);
-						println!("[Ready] Reconnected successfully.");
-					},
-					discord::Error::Closed(..) => break,
-					_ => {}
-				}
-
-				continue
+		let event = match bot.receive_event() {
+			Some(event) => event,
+			None => {
+				break;
 			}
 		};
-		state.update(&event);
 
 		match event {
 			Event::MessageCreate(message) => {
+				let state = bot.get_sync().get_state().read().unwrap();
+
 				// Skip the message if it comes from us.
 				if message.author.id == state.user().id {
 					continue
@@ -181,8 +179,14 @@ fn main() {
 
 				let message_shared = Arc::new(message);
 
+				// Handle the commands.
 				if let Some((command, text)) = parse_command(&message_shared.content) {
-					handle_command(&bot, &message_shared, command, text);
+					handle_command(bot.get_sync().clone(), message_shared.clone(), command, text);
+				}
+
+				// Handle the attachments.
+				if message_shared.attachments.len() > 0 {
+					handle_attachment(bot.get_sync().clone(), message_shared);
 				}
 			}
 

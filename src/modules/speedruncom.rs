@@ -208,10 +208,10 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 
 	let ref game = data[0];
 	let game_id = try!(game.lookup("id")
-		.and_then(|x| x.as_string())
+		.and_then(|x| x.as_str())
 		.ok_or("Couldn't get `id`"));
 	let game_name = try!(game.lookup("names.international")
-		.and_then(|x| x.as_string())
+		.and_then(|x| x.as_str())
 		.ok_or("Couldn't get `names.international`"));
 
 	let categories_data = try!(game.lookup("categories.data")
@@ -221,15 +221,15 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 	let mut categories = HashMap::new();
 	for category in categories_data {
 		let category_type = try!(category.lookup("type")
-			.and_then(|x| x.as_string())
+			.and_then(|x| x.as_str())
 			.ok_or("Couldn't get `categories.data.type`"));
 
 		if category_type == "per-game" {
 			let id = try!(category.lookup("id")
-				.and_then(|x| x.as_string())
+				.and_then(|x| x.as_str())
 				.ok_or("Couldn't get `categories.data.id`"));
 			let name = try!(category.lookup("name")
-				.and_then(|x| x.as_string())
+				.and_then(|x| x.as_str())
 				.ok_or("Couldn't get `categories.data.name`"));
 
 			categories.insert(id.to_owned(), name.to_owned());
@@ -254,7 +254,7 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 	let mut wrs = Vec::new();
 	for category in data {
 		let category_id = try!(category.lookup("category")
-			.and_then(|x| x.as_string())
+			.and_then(|x| x.as_str())
 			.ok_or("[records] Couldn't get `category`"));
 
 		// If unwrapping fails here, a new category (with at least one run)
@@ -294,7 +294,7 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 		for player in players_data {
 			let name = try!(player.lookup("names.international")
 				.or(player.lookup("name"))
-				.and_then(|x| x.as_string())
+				.and_then(|x| x.as_str())
 				.ok_or("[records] Couldn't get a player's name"));
 
 			players.push(name.to_string());

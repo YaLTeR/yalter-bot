@@ -25,4 +25,8 @@ pub trait Module : Send + Sync {
 
 	// A function that handles the given command.
 	fn handle(&self, bot: &Bot, message: &Message, id: u32, text: &str);
+
+	// A function that gets called when someone sends a message with an attachment.
+	fn handle_attachment(&self, _bot: &Bot, _message: &Message) {
+	}
 }

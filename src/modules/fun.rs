@@ -1,4 +1,5 @@
 use bot::Bot;
+use discord::ChannelRef;
 use discord::model::Message;
 use module;
 use rand;
@@ -20,7 +21,8 @@ enum Commands {
 	Fraktur = 0,
 	Temperature = 1,
 	Roll = 2,
-	Pick = 3
+	Pick = 3,
+	Info = 4
 }
 
 impl<'a> module::Module for Module<'a> {
@@ -34,6 +36,8 @@ impl<'a> module::Module for Module<'a> {
 		map.insert(Commands::Roll as u32, &ROLL);
 		static PICK: [&'static str; 2] = [ "pick", "choose" ];
 		map.insert(Commands::Pick as u32, &PICK);
+		static INFO: [&'static str; 2] = [ "information", "info" ];
+		map.insert(Commands::Info as u32, &INFO);
 		Module { commands: map }
 	}
 
@@ -59,6 +63,8 @@ impl<'a> module::Module for Module<'a> {
 				"Prints a random number.",
 			x if x == Commands::Pick as u32 =>
 				"Randomly picks one of the given options.",
+			x if x == Commands::Info as u32 =>
+				"Prints out some information about the server.",
 			_ => panic!("Fun::command_description - invalid id.")
 		}
 	}
@@ -73,6 +79,8 @@ impl<'a> module::Module for Module<'a> {
 				"`!roll [high]` - Prints a random number between 0 and 99, or between 0 and high - 1, inclusive.",
 			x if x == Commands::Pick as u32 =>
 				"`!pick something;something else[;third option[;...]]` - Randomly picks one of the given options.",
+			x if x == Commands::Info as u32 =>
+				"`!information` - Prints out some information about the server.",
 			_ => panic!("Fun::command_help_message - invalid id.")
 		}
 	}
@@ -87,6 +95,8 @@ impl<'a> module::Module for Module<'a> {
 				self.handle_roll(bot, message, text),
 			x if x == Commands::Pick as u32 =>
 				self.handle_pick(bot, message, text),
+			x if x == Commands::Info as u32 =>
+				self.handle_info(bot, message, text),
 			_ => panic!("Fun::handle - invalid id.")
 		}
 	}
@@ -135,11 +145,10 @@ impl<'a> Module<'a> {
 
 	fn handle_roll(&self, bot: &Bot, message: &Message, text: &str) {
 		let caps = ROLL_REGEX.captures(text).unwrap();
-		let max = caps
-			.at(2)
-			.and_then(|x| x.parse::<u64>().ok())
-			.map(|x| if x == 0 { 100 } else { x })
-			.unwrap_or(100);
+		let max = caps.at(2)
+		              .and_then(|x| x.parse::<u64>().ok())
+		              .map(|x| if x == 0 { 100 } else { x })
+		              .unwrap_or(100);
 
 		let mut rng = rand::thread_rng();
 		let number = Range::new(0, max).ind_sample(&mut rng);
@@ -166,6 +175,44 @@ impl<'a> Module<'a> {
 				&message.channel_id,
 				&format!("{}: I pick {}!", message.author.mention(), options[index])
 			);
+		}
+	}
+
+	fn handle_info(&self, bot: &Bot, message: &Message, _text: &str) {
+		match bot.get_state().read().unwrap().find_channel(&message.channel_id) {
+			Some(ChannelRef::Private(channel)) => {
+				bot.send(&message.channel_id, &format!("```{:#?}```", channel));
+			},
+
+			Some(ChannelRef::Public(server, channel)) => {
+				let mut buf = format!(
+					"```Server ID: {},\n\
+					    Owner ID: {},\n\
+					    Member count: {},\n\
+					    Icon: {},\n\
+					    Roles:",
+					server.id.0,
+					server.owner_id.0,
+					server.member_count,
+					if let Some(ref icon) = server.icon { &icon } else { "N/A" }
+				);
+
+				if server.roles.len() == 0 {
+					buf.push_str(" N/A");
+				} else {
+					for role in &server.roles {
+						buf.push_str(&format!("\n- {} '{}'", role.id.0, role.name));
+					}
+				}
+
+				buf.push_str(&format!("\n\nChannel ID: {}```", channel.id.0));
+
+				bot.send(&message.channel_id, &buf);
+			},
+
+			None => {
+				bot.send(&message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
+			}
 		}
 	}
 }
