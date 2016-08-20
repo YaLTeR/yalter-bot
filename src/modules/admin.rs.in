@@ -237,6 +237,11 @@ impl<'a> module::Module for Module<'a> {
 				}
 			},
 
+			Some(ChannelRef::Group(_)) => {
+				bot.send(&message.channel_id, "Admin commands in groups? Hm.");
+				return;
+			},
+
 			None => {
 				bot.send(&message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
 				return;

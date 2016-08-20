@@ -166,6 +166,10 @@ fn main() {
 						println!("[`{}` `#{}`] `{}`: `{}`", server.name, channel.name, message.author.name, message.content);
 					}
 
+					Some(ChannelRef::Group(group)) => {
+						println!("[Group `{}`] `{}`: `{}`", group.name(), message.author.name, message.content);
+					}
+
 					Some(ChannelRef::Private(channel)) => {
 						if message.author.name == channel.recipient.name {
 							println!("[Private] `{}`: `{}`", message.author.name, message.content);

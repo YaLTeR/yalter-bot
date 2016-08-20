@@ -1,6 +1,6 @@
 use bot::Bot;
 use discord::ChannelRef;
-use discord::model::Message;
+use discord::model::*;
 use module;
 use rand;
 use rand::distributions::{IndependentSample, Range};
@@ -15,6 +15,13 @@ pub struct Module<'a> {
 lazy_static! {
 	static ref TEMPERATURE_REGEX: Regex = Regex::new(r"\s*([+-]?[0-9]+(\.[0-9]*)?)\s*([CcFf]).*").unwrap();
 	static ref ROLL_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$))?.*").unwrap();
+
+	static ref ROOM_ALLOW_PERMS: Permissions =
+		permissions::VOICE_CONNECT
+		| permissions::VOICE_SPEAK
+		| permissions::MANAGE_CHANNELS
+		| permissions::MANAGE_ROLES;
+	static ref ROOM_DENY_PERMS: Permissions = permissions::VOICE_CONNECT;
 }
 
 enum Commands {
@@ -22,7 +29,8 @@ enum Commands {
 	Temperature = 1,
 	Roll = 2,
 	Pick = 3,
-	Info = 4
+	Info = 4,
+	Room = 5
 }
 
 impl<'a> module::Module for Module<'a> {
@@ -38,6 +46,8 @@ impl<'a> module::Module for Module<'a> {
 		map.insert(Commands::Pick as u32, &PICK);
 		static INFO: [&'static str; 2] = [ "information", "info" ];
 		map.insert(Commands::Info as u32, &INFO);
+		static ROOM: [&'static str; 1] = [ "room" ];
+		map.insert(Commands::Room as u32, &ROOM);
 		Module { commands: map }
 	}
 
@@ -65,6 +75,8 @@ impl<'a> module::Module for Module<'a> {
 				"Randomly picks one of the given options.",
 			x if x == Commands::Info as u32 =>
 				"Prints out some information about the server.",
+			x if x == Commands::Room as u32 =>
+				"Makes private voice rooms.",
 			_ => panic!("Fun::command_description - invalid id.")
 		}
 	}
@@ -81,6 +93,8 @@ impl<'a> module::Module for Module<'a> {
 				"`!pick something;something else[;third option[;...]]` - Randomly picks one of the given options.",
 			x if x == Commands::Info as u32 =>
 				"`!information` - Prints out some information about the server.",
+			x if x == Commands::Room as u32 =>
+				"`!room <user or role mention(-s)>` - Makes a private voice room for you and mentioned users. The room is __NOT YET__ automatically deleted after a certain amount of time when everyone leaves it.",
 			_ => panic!("Fun::command_help_message - invalid id.")
 		}
 	}
@@ -97,6 +111,8 @@ impl<'a> module::Module for Module<'a> {
 				self.handle_pick(bot, message, text),
 			x if x == Commands::Info as u32 =>
 				self.handle_info(bot, message, text),
+			x if x == Commands::Room as u32 =>
+				self.handle_room(bot, message, text),
 			_ => panic!("Fun::handle - invalid id.")
 		}
 	}
@@ -208,6 +224,80 @@ impl<'a> Module<'a> {
 				buf.push_str(&format!("\n\nChannel ID: {}```", channel.id.0));
 
 				bot.send(&message.channel_id, &buf);
+			},
+
+			Some(ChannelRef::Group(group)) => {
+				bot.send(&message.channel_id, &format!("```{:#?}```", group));
+			},
+
+			None => {
+				bot.send(&message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
+			}
+		}
+	}
+
+	fn handle_room(&self, bot: &Bot, message: &Message, _text: &str) {
+		match bot.get_state().read().unwrap().find_channel(&message.channel_id) {
+			Some(ChannelRef::Private(_)) | Some(ChannelRef::Group(_)) => {
+				bot.send(&message.channel_id, "Well, what do you expect me to do?");
+			},
+
+			Some(ChannelRef::Public(server, _)) => {
+				if message.mentions.len() > 0 || message.mention_roles.len() > 0 {
+					let number = rand::random::<u64>();
+
+					match bot.create_channel(&server.id, &format!("🤖 - ybot - {:x}", number), ChannelType::Voice) {
+						Ok(Channel::Public(new_channel)) => {
+							// Ban @everyone from joining.
+							bot.create_permissions(new_channel.id, PermissionOverwrite {
+								kind: PermissionOverwriteType::Role(RoleId(server.id.0)),
+								allow: Permissions::empty(),
+								deny: *ROOM_DENY_PERMS
+							});
+
+							// Allow the message author to join and speak.
+							bot.create_permissions(new_channel.id, PermissionOverwrite {
+								kind: PermissionOverwriteType::Member(message.author.id),
+								allow: *ROOM_ALLOW_PERMS,
+								deny: Permissions::empty()
+							});
+
+							// Allow the mentioned users / roles to join and speak.
+							for user in &message.mentions {
+								bot.create_permissions(new_channel.id, PermissionOverwrite {
+									kind: PermissionOverwriteType::Member(user.id),
+									allow: *ROOM_ALLOW_PERMS,
+									deny: Permissions::empty()
+								});
+							}
+
+							for role_id in &message.mention_roles {
+								bot.create_permissions(new_channel.id, PermissionOverwrite {
+									kind: PermissionOverwriteType::Role(*role_id),
+									allow: *ROOM_ALLOW_PERMS,
+									deny: Permissions::empty()
+								});
+							}
+						},
+
+						Ok(Channel::Private(_)) => {
+							bot.send(&message.channel_id, "I made a private channel?! How did I what.");
+						},
+
+						Ok(Channel::Group(_)) => {
+							bot.send(&message.channel_id, "I made a group?! How did I what.");
+						},
+
+						Err(err) => {
+							bot.send(&message.channel_id, &format!("Couldn't create a new channel: {} :/", err));
+						}
+					}
+				} else {
+					bot.send(
+						&message.channel_id,
+						<Module as module::Module>::command_help_message(&self, Commands::Room as u32)
+					);
+				}
 			},
 
 			None => {

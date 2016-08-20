@@ -151,6 +151,14 @@ impl Bot {
 		self.handle_error_and_return(self.discord.get_member(server, user))
 	}
 
+	pub fn create_channel(&self, server: &ServerId, name: &str, kind: ChannelType) -> Result<Channel> {
+		self.handle_error_and_return(self.discord.create_channel(server, name, kind))
+	}
+
+	pub fn create_permissions(&self, channel: ChannelId, target: PermissionOverwrite) {
+		let _ = self.handle_error_and_return(self.discord.create_permission(channel, target));
+	}
+
 	fn handle_error<T>(&self, channel: &ChannelId, res: Result<T>) {
 		if let Err(err) = res {
 			if let discord::Error::Status(StatusCode::BadRequest, Some(ref value)) = err {
@@ -161,7 +169,7 @@ impl Bot {
 					} else {
 						Some(x)
 					})
-					.and_then(|x| x[0].as_string()) {
+					.and_then(|x| x[0].as_str()) {
 					if msg == "String value is too long." {
 						self.send(channel, "I tried sending a message but Discord told me it was too long. :(");
 					}

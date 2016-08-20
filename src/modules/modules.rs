@@ -134,7 +134,10 @@ impl<'a> Module<'a> {
 					"Bot version {} using **discord-rs**.\n\
 					 `!mods` - list modules!\n\
 					 `!mod <name>` - list commands of a module!\n\
-					 `!help <command>` - help for a command!",
+					 `!help <command>` - help for a command!\n\
+					 \n\
+					 Or simply:\n\
+					 `!commands` - list all commands!",
 					env!("CARGO_PKG_VERSION")
 				)
 			);
