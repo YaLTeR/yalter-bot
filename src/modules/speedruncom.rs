@@ -129,7 +129,13 @@ fn handle_wr(bot: &Bot, message: &Message, text: &str) {
 			} else {
 				let mut buf = format!("World records for **{}**:", game);
 				for mut wr in wrs {
-					buf.push_str(&format!("\n{}: **{}** by {}", wr.category, format_time(&wr.time), wr.players[0]));
+					buf.push_str(&format!("\n{}", wr.category));
+
+					if let Some(subcategory) = wr.subcategory {
+						buf.push_str(&format!(" ({})", subcategory));
+					}
+
+					buf.push_str(&format!(": **{}** by {}", format_time(&wr.time), wr.players[0]));
 
 					wr.players.remove(0);
 					if let Some(last_player) = wr.players.pop() {
@@ -181,17 +187,27 @@ fn format_time(time: &Duration) -> String {
 
 struct WR {
 	category: String,
+	subcategory: Option<String>,
 	players: Vec<String>,
 	time: Duration
 }
 
-type CategoryID = String;
+struct SubcategoryVariable {
+	id: String,
+	values: HashMap<String, String> // ID to name
+}
+
+struct Category {
+	id: String,
+	name: String,
+	subcategory_variable: Option<SubcategoryVariable>
+}
 
 fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 	let mut games = SPEEDRUNCOM_API_BASE.join("games").unwrap();
 	games.query_pairs_mut()
 		.append_pair("name", text)
-		.append_pair("embed", "categories")
+		.append_pair("embed", "categories.variables")
 		.append_pair("max", "1");
 		
 	let client = Client::new();
@@ -218,7 +234,8 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 		.and_then(|x| x.as_array())
 		.ok_or("Couldn't get `categories.data`"));
 
-	let mut categories = HashMap::new();
+	let mut categories = Vec::new();
+
 	for category in categories_data {
 		let category_type = try!(category.lookup("type")
 			.and_then(|x| x.as_str())
@@ -232,76 +249,160 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 				.and_then(|x| x.as_str())
 				.ok_or("Couldn't get `categories.data.name`"));
 
-			categories.insert(id.to_owned(), name.to_owned());
+			let variables = try!(category.lookup("variables.data")
+				.and_then(|x| x.as_array())
+				.ok_or("Couldn't get `categories.variables.data`"));
+
+			let mut subcategory_variable = None;
+
+			for variable in variables {
+				if variable.lookup("is-subcategory").and_then(|x| x.as_bool()).unwrap_or(false) {
+					let var_id = try!(variable.lookup("id")
+						.and_then(|x| x.as_str())
+						.ok_or("Couldn't get `variable.id`"));
+
+					let values = try!(variable.lookup("values.choices")
+						.and_then(|x| x.as_object())
+						.ok_or("Couldn't get `variable.values.choices`"));
+
+					if values.is_empty() {
+						return Err(MyError::Custom("The subcategory variable doesn't have any valid values. o_O".to_owned()));
+					}
+
+					let mut temp = HashMap::new();
+					for (val_id, val_name) in values {
+						temp.insert(
+							val_id.clone(),
+							try!(val_name.as_str().map(|x| x.to_owned()).ok_or("One of the subcategories is not a string. o_O"))
+						);
+					}
+
+					subcategory_variable = Some(SubcategoryVariable{
+						id: var_id.to_owned(),
+						values: temp
+					});
+
+					break;
+				}
+			}
+
+			categories.push(Category{ id: id.to_owned(), name: name.to_owned(), subcategory_variable: subcategory_variable });
 		}
 	}
 
-	let mut records = try!(SPEEDRUNCOM_API_BASE.join(
-			format!("games/{}/records", game_id).as_str()
-		).map_err(|x| x.to_string()));
-	records.query_pairs_mut()
-		.append_pair("top", "1")
-		.append_pair("scope", "full-game")
-		.append_pair("empty", "1")
-		.append_pair("embed", "players");
-		
-	let result = try!(client.get(records.as_str()).header(USERAGENT.clone()).send());
-	let json: serde_json::value::Value = try!(serde_json::from_reader(result));
-	let data = try!(json.lookup("data")
-		.and_then(|x| x.as_array())
-		.ok_or("[records] Couldn't get `data`"));
-	
+	if categories.is_empty() {
+		return Err(MyError::Custom(format!("*{}* doesn't seem to have any categories. :/", game_name)));
+	}
+
 	let mut wrs = Vec::new();
-	for category in data {
-		let category_id = try!(category.lookup("category")
-			.and_then(|x| x.as_str())
-			.ok_or("[records] Couldn't get `category`"));
 
-		// If unwrapping fails here, a new category (with at least one run)
-		// was added between the first and the second requests.
-		let category_name = categories.get(category_id)
-			.map(|x| x.clone())
-			.unwrap_or(format!("`{}`", category_id));
+	for category in categories {
+		if let Some(subcategory_variable) = category.subcategory_variable {
+			// Get runs for each subcategory value.
 
-		let runs = try!(category.lookup("runs")
-			.and_then(|x| x.as_array())
-			.ok_or("[records] Couldn't get `category.runs`"));
+			for (val_id, val_name) in subcategory_variable.values {
+				let mut leaderboard = try!(SPEEDRUNCOM_API_BASE.join(
+					format!("leaderboards/{}/category/{}", game_id, category.id).as_str()
+				).map_err(|x| x.to_string()));
 
-		if runs.len() == 0 {
-			// This category has no runs.
-			continue;
+				leaderboard.query_pairs_mut()
+					.append_pair("top", "1")
+					.append_pair("embed", "players")
+					.append_pair(&format!("var-{}", subcategory_variable.id), &val_id);
+
+				let result = try!(client.get(leaderboard.as_str()).header(USERAGENT.clone()).send());
+				let json: serde_json::value::Value = try!(serde_json::from_reader(result));
+
+				let runs = try!(json.lookup("data.runs")
+					.and_then(|x| x.as_array())
+					.ok_or("[leaderboard] Couldn't get `data.runs`"));
+
+				if runs.is_empty() {
+					// Empty subcategory.
+					continue;
+				}
+
+				let run = try!(runs[0].lookup("run").ok_or("[leaderboard] Couldn't get `runs[0].run`"));
+
+				let time_in_seconds = try!(run.lookup("times")
+					.and_then(|x| x.lookup("primary_t"))
+					.and_then(|x| x.as_f64())
+					.ok_or("[leaderboard] Couldn't get `runs[0].run.times.primary_t"));
+				let time = Duration::from_millis((time_in_seconds * 1000f64) as u64);
+
+				let players_data = try!(json.lookup("data.players.data")
+					.and_then(|x| x.as_array())
+					.and_then(|x| if x.len() == 0 {
+						None
+					} else {
+						Some(x)
+					})
+					.ok_or("[leaderboard] Couldn't get the players array"));
+
+				let mut players = Vec::new();
+				for player in players_data {
+					let name = try!(player.lookup("names.international")
+						.or(player.lookup("name"))
+						.and_then(|x| x.as_str())
+						.ok_or("[leaderboard] Couldn't get a player's name"));
+
+					players.push(name.to_string());
+				}
+
+				wrs.push(WR { category: category.name.clone(), subcategory: Some(val_name), players: players, time: time });
+			}
+		} else {
+			// No subcategories, just get runs.
+
+			let mut leaderboard = try!(SPEEDRUNCOM_API_BASE.join(
+				format!("leaderboards/{}/category/{}", game_id, category.id).as_str()
+			).map_err(|x| x.to_string()));
+
+			leaderboard.query_pairs_mut()
+				.append_pair("top", "1")
+				.append_pair("embed", "players");
+
+			let result = try!(client.get(leaderboard.as_str()).header(USERAGENT.clone()).send());
+			let json: serde_json::value::Value = try!(serde_json::from_reader(result));
+
+			let runs = try!(json.lookup("data.runs")
+				.and_then(|x| x.as_array())
+				.ok_or("[leaderboard] Couldn't get `data.runs`"));
+
+			if runs.is_empty() {
+				// Empty category.
+				continue;
+			}
+
+			let run = try!(runs[0].lookup("run").ok_or("[leaderboard] Couldn't get `runs[0].run`"));
+
+			let time_in_seconds = try!(run.lookup("times")
+				.and_then(|x| x.lookup("primary_t"))
+				.and_then(|x| x.as_f64())
+				.ok_or("[leaderboard] Couldn't get `runs[0].run.times.primary_t"));
+			let time = Duration::from_millis((time_in_seconds * 1000f64) as u64);
+
+			let players_data = try!(json.lookup("data.players.data")
+				.and_then(|x| x.as_array())
+				.and_then(|x| if x.len() == 0 {
+					None
+				} else {
+					Some(x)
+				})
+				.ok_or("[leaderboard] Couldn't get the players array"));
+
+			let mut players = Vec::new();
+			for player in players_data {
+				let name = try!(player.lookup("names.international")
+					.or(player.lookup("name"))
+					.and_then(|x| x.as_str())
+					.ok_or("[leaderboard] Couldn't get a player's name"));
+
+				players.push(name.to_string());
+			}
+
+			wrs.push(WR { category: category.name.clone(), subcategory: None, players: players, time: time });
 		}
-
-		let run = try!(runs[0].lookup("run").ok_or("[records] Couldn't get `category.runs[0].run`"));
-
-		let time_in_seconds = try!(run.lookup("times")
-			.and_then(|x| x.lookup("primary_t"))
-			.and_then(|x| x.as_f64())
-			.ok_or("[records] Couldn't get `category.runs[0].run.times.primary_t"));
-		let time = Duration::from_millis((time_in_seconds * 1000f64) as u64);
-
-		let players_data = try!(category.lookup("players")
-			.and_then(|x| x.lookup("data"))
-			.and_then(|x| x.as_array())
-			.and_then(|x| if x.len() == 0 {
-				None
-			} else {
-				Some(x)
-			})
-			.ok_or("[records] Couldn't get the players array"));
-
-		let mut players = Vec::new();
-		for player in players_data {
-			let name = try!(player.lookup("names.international")
-				.or(player.lookup("name"))
-				.and_then(|x| x.as_str())
-				.ok_or("[records] Couldn't get a player's name"));
-
-			players.push(name.to_string());
-
-		}
-
-		wrs.push(WR { category: category_name.clone(), players: players, time: time });
 	}
 	
 	Ok((game_name.to_string(), wrs))
