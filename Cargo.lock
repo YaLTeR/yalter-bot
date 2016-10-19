@@ -1,6 +1,6 @@
 [root]
 name = "yalter-bot"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "discord 0.6.0 (git+https://github.com/SpaceManiac/discord-rs.git)",
  "hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",

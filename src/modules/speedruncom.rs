@@ -4,13 +4,15 @@ use hyper;
 use hyper::client::Client;
 use hyper::header::UserAgent;
 use module;
+use std::collections::BTreeMap;
 use std::collections::hash_map::HashMap;
 use std::error;
-use std::error::Error;
 use std::fmt;
 use std::time::Duration;
 use serde_json;
 use url::Url;
+
+include!(concat!(env!("OUT_DIR"), "/speedruncom_types.rs"));
 
 pub struct Module<'a> {
 	commands: HashMap<u32, &'a [&'a str]>
@@ -151,13 +153,13 @@ fn handle_wr(bot: &Bot, message: &Message, text: &str) {
 			}
 		},
 		Err(MyError::Network(err)) => {
-			format!("Couldn't communicate with https://www.speedrun.com. :( ({})", err.description())
+			format!("Couldn't communicate with https://www.speedrun.com. :( ({})", err)
 		},
 		Err(MyError::NoSuchGame) => {
 			"There's no such game on speedrun.com! :O".to_string()
 		},
 		Err(err) => {
-			format!("Something's broken. :/ ({})", err.description())
+			format!("Something's broken. :/ ({})", err)
 		}
 	}.as_str());
 }
@@ -192,17 +194,6 @@ struct WR {
 	time: Duration
 }
 
-struct SubcategoryVariable {
-	id: String,
-	values: HashMap<String, String> // ID to name
-}
-
-struct Category {
-	id: String,
-	name: String,
-	subcategory_variable: Option<SubcategoryVariable>
-}
-
 fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 	let mut games = SPEEDRUNCOM_API_BASE.join("games").unwrap();
 	games.query_pairs_mut()
@@ -213,149 +204,59 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 	let client = Client::new();
 	let result = try!(client.get(games.as_str()).header(USERAGENT.clone()).send());
 
-	let json: serde_json::Value = try!(serde_json::from_reader(result));
-	let data = try!(json.lookup("data")
-		.and_then(|x| x.as_array())
-		.ok_or("Couldn't get `data`"));
-
-	if data.len() == 0 {
+	let games: APIGames = try!(serde_json::de::from_reader(result));
+	if games.data.is_empty() {
 		return Err(MyError::NoSuchGame);
 	}
 
-	let ref game = data[0];
-	let game_id = try!(game.lookup("id")
-		.and_then(|x| x.as_str())
-		.ok_or("Couldn't get `id`"));
-	let game_name = try!(game.lookup("names.international")
-		.and_then(|x| x.as_str())
-		.ok_or("Couldn't get `names.international`"));
+	let game = games.data.into_iter().next().unwrap();
 
-	let categories_data = try!(game.lookup("categories.data")
-		.and_then(|x| x.as_array())
-		.ok_or("Couldn't get `categories.data`"));
-
-	let mut categories = Vec::new();
-
-	for category in categories_data {
-		let category_type = try!(category.lookup("type")
-			.and_then(|x| x.as_str())
-			.ok_or("Couldn't get `categories.data.type`"));
-
-		if category_type == "per-game" {
-			let id = try!(category.lookup("id")
-				.and_then(|x| x.as_str())
-				.ok_or("Couldn't get `categories.data.id`"));
-			let name = try!(category.lookup("name")
-				.and_then(|x| x.as_str())
-				.ok_or("Couldn't get `categories.data.name`"));
-
-			let variables = try!(category.lookup("variables.data")
-				.and_then(|x| x.as_array())
-				.ok_or("Couldn't get `categories.variables.data`"));
-
-			let mut subcategory_variable = None;
-
-			for variable in variables {
-				if variable.lookup("is-subcategory").and_then(|x| x.as_bool()).unwrap_or(false) {
-					let var_id = try!(variable.lookup("id")
-						.and_then(|x| x.as_str())
-						.ok_or("Couldn't get `variable.id`"));
-
-					let values = try!(variable.lookup("values.choices")
-						.and_then(|x| x.as_object())
-						.ok_or("Couldn't get `variable.values.choices`"));
-
-					if values.is_empty() {
-						return Err(MyError::Custom("The subcategory variable doesn't have any valid values. o_O".to_owned()));
-					}
-
-					let mut temp = HashMap::new();
-					for (val_id, val_name) in values {
-						temp.insert(
-							val_id.clone(),
-							try!(val_name.as_str().map(|x| x.to_owned()).ok_or("One of the subcategories is not a string. o_O"))
-						);
-					}
-
-					subcategory_variable = Some(SubcategoryVariable{
-						id: var_id.to_owned(),
-						values: temp
-					});
-
-					break;
-				}
-			}
-
-			categories.push(Category{ id: id.to_owned(), name: name.to_owned(), subcategory_variable: subcategory_variable });
-		}
-	}
-
+	let categories: Vec<APIGamesCategoriesData> = game.categories.data.into_iter().filter(|x| x.type_ == "per-game").collect();
 	if categories.is_empty() {
-		return Err(MyError::Custom(format!("*{}* doesn't seem to have any categories. :/", game_name)));
+		return Err(MyError::Custom(format!("*{}* doesn't seem to have any categories. :/", game.names.international)));
 	}
 
 	let mut wrs = Vec::new();
 
-	for category in categories {
-		if let Some(subcategory_variable) = category.subcategory_variable {
+	for category in categories.into_iter() {
+		if let Some(subcategory_variable) = category.variables.data.into_iter().filter(|x| x.is_subcategory).next() {
 			// Get runs for each subcategory value.
 
-			for (val_id, val_name) in subcategory_variable.values {
+			for (value_id, value) in subcategory_variable.values.values {
 				let mut leaderboard = try!(SPEEDRUNCOM_API_BASE.join(
-					format!("leaderboards/{}/category/{}", game_id, category.id).as_str()
+					&format!("leaderboards/{}/category/{}", game.id, category.id)
 				).map_err(|x| x.to_string()));
 
 				leaderboard.query_pairs_mut()
 					.append_pair("top", "1")
 					.append_pair("embed", "players")
-					.append_pair(&format!("var-{}", subcategory_variable.id), &val_id);
+					.append_pair(&format!("var-{}", subcategory_variable.id), &value_id);
 
 				let result = try!(client.get(leaderboard.as_str()).header(USERAGENT.clone()).send());
-				let json: serde_json::value::Value = try!(serde_json::from_reader(result));
 
-				let runs = try!(json.lookup("data.runs")
-					.and_then(|x| x.as_array())
-					.ok_or("[leaderboard] Couldn't get `data.runs`"));
+				let leaderboard: APILeaderboards = try!(serde_json::de::from_reader(result));
 
+				let runs = leaderboard.data.runs;
 				if runs.is_empty() {
 					// Empty subcategory.
 					continue;
 				}
 
-				let run = try!(runs[0].lookup("run").ok_or("[leaderboard] Couldn't get `runs[0].run`"));
+				let time = Duration::from_millis((runs[0].run.times.primary_t * 1000f64) as u64);
 
-				let time_in_seconds = try!(run.lookup("times")
-					.and_then(|x| x.lookup("primary_t"))
-					.and_then(|x| x.as_f64())
-					.ok_or("[leaderboard] Couldn't get `runs[0].run.times.primary_t"));
-				let time = Duration::from_millis((time_in_seconds * 1000f64) as u64);
+				let players: Vec<String> = leaderboard.data.players.data.into_iter()
+				                                                        .map(|x| x.names.map(|n| n.international)
+				                                                                        .or(x.name)
+				                                                                        .unwrap_or("nameless player".to_owned()))
+				                                                        .collect();
 
-				let players_data = try!(json.lookup("data.players.data")
-					.and_then(|x| x.as_array())
-					.and_then(|x| if x.len() == 0 {
-						None
-					} else {
-						Some(x)
-					})
-					.ok_or("[leaderboard] Couldn't get the players array"));
-
-				let mut players = Vec::new();
-				for player in players_data {
-					let name = try!(player.lookup("names.international")
-						.or(player.lookup("name"))
-						.and_then(|x| x.as_str())
-						.ok_or("[leaderboard] Couldn't get a player's name"));
-
-					players.push(name.to_string());
-				}
-
-				wrs.push(WR { category: category.name.clone(), subcategory: Some(val_name), players: players, time: time });
+				wrs.push(WR { category: category.name.clone(), subcategory: Some(value.label), players: players, time: time });
 			}
 		} else {
 			// No subcategories, just get runs.
 
 			let mut leaderboard = try!(SPEEDRUNCOM_API_BASE.join(
-				format!("leaderboards/{}/category/{}", game_id, category.id).as_str()
+				&format!("leaderboards/{}/category/{}", game.id, category.id)
 			).map_err(|x| x.to_string()));
 
 			leaderboard.query_pairs_mut()
@@ -363,47 +264,25 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 				.append_pair("embed", "players");
 
 			let result = try!(client.get(leaderboard.as_str()).header(USERAGENT.clone()).send());
-			let json: serde_json::value::Value = try!(serde_json::from_reader(result));
+			let leaderboard: APILeaderboards = try!(serde_json::de::from_reader(result));
 
-			let runs = try!(json.lookup("data.runs")
-				.and_then(|x| x.as_array())
-				.ok_or("[leaderboard] Couldn't get `data.runs`"));
-
+			let runs = leaderboard.data.runs;
 			if runs.is_empty() {
 				// Empty category.
 				continue;
 			}
 
-			let run = try!(runs[0].lookup("run").ok_or("[leaderboard] Couldn't get `runs[0].run`"));
+			let time = Duration::from_millis((runs[0].run.times.primary_t * 1000f64) as u64);
 
-			let time_in_seconds = try!(run.lookup("times")
-				.and_then(|x| x.lookup("primary_t"))
-				.and_then(|x| x.as_f64())
-				.ok_or("[leaderboard] Couldn't get `runs[0].run.times.primary_t"));
-			let time = Duration::from_millis((time_in_seconds * 1000f64) as u64);
-
-			let players_data = try!(json.lookup("data.players.data")
-				.and_then(|x| x.as_array())
-				.and_then(|x| if x.len() == 0 {
-					None
-				} else {
-					Some(x)
-				})
-				.ok_or("[leaderboard] Couldn't get the players array"));
-
-			let mut players = Vec::new();
-			for player in players_data {
-				let name = try!(player.lookup("names.international")
-					.or(player.lookup("name"))
-					.and_then(|x| x.as_str())
-					.ok_or("[leaderboard] Couldn't get a player's name"));
-
-				players.push(name.to_string());
-			}
+			let players: Vec<String> = leaderboard.data.players.data.into_iter()
+			                                                        .map(|x| x.names.map(|n| n.international)
+			                                                                        .or(x.name)
+			                                                                        .unwrap_or("nameless player".to_owned()))
+			                                                        .collect();
 
 			wrs.push(WR { category: category.name.clone(), subcategory: None, players: players, time: time });
 		}
 	}
 	
-	Ok((game_name.to_string(), wrs))
+	Ok((game.names.international, wrs))
 }
