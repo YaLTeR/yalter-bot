@@ -9,7 +9,7 @@ struct APIGames {
 struct APIGamesData {
 	id: String,
 	names: APIGamesNames,
-	categories: APIGamesCategories
+	categories: Option<APICategories>
 }
 
 #[derive(Deserialize, Debug)]
@@ -18,39 +18,39 @@ struct APIGamesNames {
 }
 
 #[derive(Deserialize, Debug)]
-struct APIGamesCategories {
-	data: Vec<APIGamesCategoriesData>
+struct APICategories {
+	data: Vec<APICategoryData>
 }
 
 #[derive(Deserialize, Debug)]
-struct APIGamesCategoriesData {
+struct APICategoryData {
 	id: String,
 	name: String,
 	#[serde(rename="type")]
 	type_: String,
-	variables: APIGamesCategoriesVariables
+	variables: APICategoryVariables
 }
 
 #[derive(Deserialize, Debug)]
-struct APIGamesCategoriesVariables {
-	data: Vec<APIGamesCategoriesVariablesData>
+struct APICategoryVariables {
+	data: Vec<APICategoryVariablesData>
 }
 
 #[derive(Deserialize, Debug)]
-struct APIGamesCategoriesVariablesData {
+struct APICategoryVariablesData {
 	id: String,
 	#[serde(rename="is-subcategory")]
 	is_subcategory: bool,
-	values: APIGamesCategoriesVariablesValues
+	values: APICategoryVariablesValues
 }
 
 #[derive(Deserialize, Debug)]
-struct APIGamesCategoriesVariablesValues {
-	values: BTreeMap<String, APIGamesCategoriesVariablesValuesValue>
+struct APICategoryVariablesValues {
+	values: BTreeMap<String, APICategoryVariablesValuesValue>
 }
 
 #[derive(Deserialize, Debug)]
-struct APIGamesCategoriesVariablesValuesValue {
+struct APICategoryVariablesValuesValue {
 	label: String
 }
 
@@ -63,22 +63,30 @@ struct APILeaderboards {
 
 #[derive(Deserialize, Debug)]
 struct APILeaderboardsData {
-	runs: Vec<APILeaderboardsRun>,
+	runs: Vec<APIRun>,
 	players: APILeaderboardsPlayers
 }
 
 #[derive(Deserialize, Debug)]
-struct APILeaderboardsRun {
-	run: APILeaderboardsRunRun
+struct APIRun {
+	place: u64,
+	run: APIRunRun,
+	category: Option<APICategory>
 }
 
 #[derive(Deserialize, Debug)]
-struct APILeaderboardsRunRun {
-	times: APILeaderboardsRunRunTimes
+struct APICategory {
+	data: APICategoryData
 }
 
 #[derive(Deserialize, Debug)]
-struct APILeaderboardsRunRunTimes {
+struct APIRunRun {
+	times: APIRunRunTimes,
+	values: BTreeMap<String, String> // Variable ID to value ID.
+}
+
+#[derive(Deserialize, Debug)]
+struct APIRunRunTimes {
 	primary_t: f64
 }
 
@@ -96,4 +104,12 @@ struct APILeaderboardsPlayersData {
 #[derive(Deserialize, Debug)]
 struct APILeaderboardsPlayersNames {
 	international: String
+}
+
+// Stuff for the /users API call.
+
+#[derive(Deserialize, Debug)]
+struct APIUsers {
+	status: Option<u64>,
+	data: Option<Vec<APIRun>>
 }
