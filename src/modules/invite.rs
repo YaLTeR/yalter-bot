@@ -11,7 +11,7 @@ const BOT_CLIENT_ID: &'static str = "PUT YOUR BOT CLIENT ID HERE";
 
 lazy_static! {
 	static ref INVITE_LINK: String = format!(
-		"https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=52224",
+		"https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=271707152",
 		BOT_CLIENT_ID
 	);
 }
