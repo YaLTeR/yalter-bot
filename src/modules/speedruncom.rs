@@ -216,6 +216,7 @@ impl<'a> Module<'a> {
 						}
 
 						buf.push_str(&format!(": **{}** - {}", format_time(&pb.time), pb.place));
+						buf.push_str(&number_suffix(pb.place));
 
 						if pb.place == 1 {
 							buf.push_str(" 🏆");
@@ -457,4 +458,21 @@ fn get_subcategories(run: &APIRunRun, subcategory_variables: Vec<SubcategoryVari
 	          .filter(|x| x.is_some())
 	          .map(|x| x.unwrap().clone())
 	          .collect::<Vec<String>>()
+}
+
+fn number_suffix(n: u64) -> String {
+	let t = n % 100;
+
+	if t >= 11 && t <= 13 {
+		return "th".to_owned();
+	}
+
+	let t = t % 10;
+
+	match t {
+		1 => "st".to_owned(),
+		2 => "nd".to_owned(),
+		3 => "rd".to_owned(),
+		_ => "th".to_owned()
+	}
 }
