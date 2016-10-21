@@ -134,7 +134,7 @@ impl<'a> module::Module for Module<'a> {
 			x if x == Commands::WR as u32 =>
 				"`!wr <game>` - Shows the world record times for all categories for the given game. For example, `!wr Half-Life`.",
 			x if x == Commands::PB as u32 =>
-				"`!wr <player> <game>` - Shows player's personal bests in the given game. For example, `!pb YaLTeR Half-Life`.",
+				"`!pb <player> <game>` - Shows player's personal bests in the given game. For example, `!pb YaLTeR Half-Life`.",
 			_ => panic!("Speedrun::command_help_message - invalid id.")
 		}
 	}
