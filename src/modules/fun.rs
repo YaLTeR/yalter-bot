@@ -30,7 +30,9 @@ enum Commands {
 	Roll = 2,
 	Pick = 3,
 	Info = 4,
-	Room = 5
+	Room = 5,
+	Aesthetic = 6,
+	Smallcaps = 7
 }
 
 impl<'a> module::Module for Module<'a> {
@@ -48,6 +50,10 @@ impl<'a> module::Module for Module<'a> {
 		map.insert(Commands::Info as u32, &INFO);
 		static ROOM: [&'static str; 1] = [ "room" ];
 		map.insert(Commands::Room as u32, &ROOM);
+		static AESTHETIC: [&'static str; 2] = [ "aesthetic", "fullwidth" ];
+		map.insert(Commands::Aesthetic as u32, &AESTHETIC);
+		static SMALLCAPS: [&'static str; 1] = [ "smallcaps" ];
+		map.insert(Commands::Smallcaps as u32, &SMALLCAPS);
 		Module { commands: map }
 	}
 
@@ -66,7 +72,7 @@ impl<'a> module::Module for Module<'a> {
 	fn command_description(&self, id: u32) -> &'static str {
 		match id {
 			x if x == Commands::Fraktur as u32 =>
-				"Prints the given text in fraktur (gothic math symbols).",
+				"Prints the given text in 𝔣𝔯𝔞𝔨𝔱𝔲𝔯 (gothic math symbols).",
 			x if x == Commands::Temperature as u32 =>
 				"Converts the temperature between Celsius and Fahrenheit.",
 			x if x == Commands::Roll as u32 =>
@@ -77,6 +83,10 @@ impl<'a> module::Module for Module<'a> {
 				"Prints out some information about the server.",
 			x if x == Commands::Room as u32 =>
 				"Makes private voice rooms.",
+			x if x == Commands::Aesthetic as u32 =>
+				"Prints the given text in ｆｕｌｌｗｉｄｔｈ characters.",
+			x if x == Commands::Smallcaps as u32 =>
+				"Converts capital letters to ꜱᴍᴀʟʟ ᴄᴀᴘɪᴛᴀʟ letters.",
 			_ => panic!("Fun::command_description - invalid id.")
 		}
 	}
@@ -84,7 +94,7 @@ impl<'a> module::Module for Module<'a> {
 	fn command_help_message(&self, id: u32) -> &'static str {
 		match id {
 			x if x == Commands::Fraktur as u32 =>
-				"`!fraktur <text>` - Prints the given text in fraktur (gothic math symbols). Note that there are no regular versions of letters 'C', 'H', 'I', 'R', 'Z'; those are replaced with their bold versions.",
+				"`!fraktur <text>` - Prints the given text in 𝔣𝔯𝔞𝔨𝔱𝔲𝔯 (gothic math symbols). Note that there are no regular versions of letters 'C', 'H', 'I', 'R', 'Z'; those are replaced with their bold versions.",
 			x if x == Commands::Temperature as u32 =>
 				"`!temperature <number> <C or F>` - Converts the temperature into another scale. For example, `!temp 5C` outputs 41.",
 			x if x == Commands::Roll as u32 =>
@@ -95,6 +105,10 @@ impl<'a> module::Module for Module<'a> {
 				"`!information` - Prints out some information about the server.",
 			x if x == Commands::Room as u32 =>
 				"`!room <user or role mention(-s)>` - Makes a private voice room for you and mentioned users. The room is __NOT YET__ automatically deleted after a certain amount of time when everyone leaves it.",
+			x if x == Commands::Aesthetic as u32 =>
+				"`!aesthetic <text>` - Prints the given text in ｆｕｌｌｗｉｄｔｈ characters.",
+			x if x == Commands::Smallcaps as u32 =>
+				"`!smallcaps <text>` - Converts capital letters to ꜱᴍᴀʟʟ ᴄᴀᴘɪᴛᴀʟ letters. Note that there are no small capital versions of letters 'Q' and 'X'.",
 			_ => panic!("Fun::command_help_message - invalid id.")
 		}
 	}
@@ -113,6 +127,10 @@ impl<'a> module::Module for Module<'a> {
 				self.handle_info(bot, message, text),
 			x if x == Commands::Room as u32 =>
 				self.handle_room(bot, message, text),
+			x if x == Commands::Aesthetic as u32 =>
+				self.handle_aesthetic(bot, message, text),
+			x if x == Commands::Smallcaps as u32 =>
+				self.handle_smallcaps(bot, message, text),
 			_ => panic!("Fun::handle - invalid id.")
 		}
 	}
@@ -121,6 +139,16 @@ impl<'a> module::Module for Module<'a> {
 impl<'a> Module<'a> {
 	fn handle_fraktur(&self, bot: &Bot, message: &Message, text: &str) {
 		let reply = text.chars().map(frakturize).collect::<String>();
+		bot.send(&message.channel_id, &reply);
+	}
+
+	fn handle_aesthetic(&self, bot: &Bot, message: &Message, text: &str) {
+		let reply = text.chars().map(make_fullwidth).collect::<String>();
+		bot.send(&message.channel_id, &reply);
+	}
+
+	fn handle_smallcaps(&self, bot: &Bot, message: &Message, text: &str) {
+		let reply = text.chars().map(make_smallcaps).collect::<String>();
 		bot.send(&message.channel_id, &reply);
 	}
 
@@ -315,4 +343,23 @@ fn frakturize(c: char) -> char {
 		'A'...'Z' => char::from_u32(('𝔄' as u32) - ('A' as u32) + (c as u32)).unwrap(),
 		_ => c
 	}
+}
+
+fn make_fullwidth(c: char) -> char {
+	match c {
+		'!'...'~' => char::from_u32(('！' as u32) - ('!' as u32) + (c as u32)).unwrap(),
+		' ' => '　',
+		_ => c
+	}
+}
+
+fn make_smallcaps(c: char) -> char {
+	let original = "ABCDEFGHIJKLMNOPRSTUVWYZÆŒÐƷƎŁƆШГΛПРΨΩЛ";
+	let smallcaps = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘʀꜱᴛᴜᴠᴡʏᴢᴁɶᴆᴣⱻᴌᴐꟺᴦᴧᴨᴘᴪꭥл";
+
+	if let Some(m) = original.chars().enumerate().find(|x| x.1 == c) {
+		return smallcaps.chars().nth(m.0).unwrap();
+	}
+
+	c
 }
