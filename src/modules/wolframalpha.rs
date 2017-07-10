@@ -3,6 +3,7 @@ use discord::model::Message;
 use hyper::client::Client;
 use module;
 use std::collections::hash_map::HashMap;
+use std::env;
 use std::error::Error;
 use url::Url;
 use xml;
@@ -15,7 +16,6 @@ pub struct Module<'a> {
 lazy_static! {
 	static ref WOLFRAMALPHA_API_BASE: Url = Url::parse("http://api.wolframalpha.com/v2/query").unwrap();
 }
-const WOLFRAMALPHA_APPID: &'static str = "INSERT YOUR APPID HERE";
 
 enum Commands {
 	WA = 0
@@ -65,7 +65,7 @@ impl<'a> module::Module for Module<'a> {
 
 		let mut url = WOLFRAMALPHA_API_BASE.clone();
 		url.query_pairs_mut()
-			.append_pair("appid", WOLFRAMALPHA_APPID)
+			.append_pair("appid", &env::var("YALTER_BOT_WOLFRAMALPHA_APPID").expect("Please set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable."))
 			.append_pair("input", text);
 
 		println!("URL: {}", url.as_str());

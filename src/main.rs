@@ -11,9 +11,6 @@ extern crate url;
 extern crate xml;
 
 use std::env;
-use std::fs::File;
-use std::io;
-use std::io::Read;
 use std::sync::Arc;
 use std::thread;
 
@@ -125,12 +122,12 @@ fn main() {
 	modules.push(Box::new(modules::admin::Module::new()));
 
 	// The Wolfram!Alpha module requires an app-id to work.
-	// Place your app-id into the appropriate spot inside modules/wolframalpha.rs.
+	// Set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable before uncommenting this line.
 	// modules.push(Box::new(modules::wolframalpha::Module::new()));
 
 	// The Invite module requires a bot client ID to work.
 	// Get it from https://discordapp.com/developers/applications/me
-	// Place your client ID into the appropriate spot inside modules/invite.rs.
+	// Set the YALTER_BOT_CLIENT_ID environment variable before uncommenting this line.
 	// modules.push(Box::new(modules::invite::Module::new()));
 
 	let mut bot = BotThreadUnsafe::new(discord, modules);
