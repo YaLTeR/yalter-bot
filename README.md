@@ -10,6 +10,6 @@ The bot expects some environment variables:
 - `YALTER_BOT_WOLFRAMALPHA_APPID` — the Wolfram!Alpha app ID, set to enable the Wolfram!Alpha module.
 
 ### Basic commands
-- `!modules` - view information about modules and their commands.
-- `!commands` - list all available commands.
-- `!help <command>` - get help for a given command.
+- `!modules` — view information about modules and their commands.
+- `!commands` — list all available commands.
+- `!help <command>` — get help for a given command.
