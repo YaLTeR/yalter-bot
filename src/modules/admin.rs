@@ -152,7 +152,7 @@ impl From<serde_json::error::Error> for MyError {
 type MyResult<T> = std::result::Result<T, MyError>;
 
 impl<'a> module::Module for Module<'a> {
-	fn new() -> Self {
+	fn new() -> std::result::Result<Box<module::Module>, String> {
 		let mut map: HashMap<u32, &[&str]> = HashMap::new();
 		static ADMIN: [&'static str; 1] = [ "admin" ];
 		map.insert(Commands::Admin as u32, &ADMIN);
@@ -168,7 +168,7 @@ impl<'a> module::Module for Module<'a> {
 			}
 		};
 
-		Module { commands: map, memory: RwLock::new(memory) }
+		Ok(Box::new(Module { commands: map, memory: RwLock::new(memory) }))
 	}
 
 	fn name(&self) -> &'static str {

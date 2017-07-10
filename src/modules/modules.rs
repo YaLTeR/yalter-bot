@@ -179,7 +179,7 @@ impl<'a> Module<'a> {
 }
 
 impl<'a> module::Module for Module<'a> {
-	fn new() -> Self {
+	fn new() -> Result<Box<module::Module>, String> {
 		let mut map: HashMap<u32, &[&str]> = HashMap::new();
 		static MODULES: [&'static str; 4] = [ "modules", "module", "mods", "mod" ];
 		map.insert(Commands::Modules as u32, &MODULES);
@@ -187,7 +187,7 @@ impl<'a> module::Module for Module<'a> {
 		map.insert(Commands::Commands as u32, &COMMANDS);
 		static COMMAND: [&'static str; 3] = [ "help", "command", "cmd" ];
 		map.insert(Commands::Command as u32, &COMMAND);
-		Module { commands: map }
+		Ok(Box::new(Module { commands: map }))
 	}
 
 	fn name(&self) -> &'static str {

@@ -4,7 +4,7 @@ use discord::model::Message;
 use std::marker::{Send, Sync};
 
 pub trait Module : Send + Sync {
-	fn new() -> Self where Self: Sized;
+	fn new() -> Result<Box<Module>, String> where Self: Sized;
 
 	// Module name.
 	fn name(&self) -> &'static str;

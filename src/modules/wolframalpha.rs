@@ -15,6 +15,7 @@ pub struct Module<'a> {
 
 lazy_static! {
 	static ref WOLFRAMALPHA_API_BASE: Url = Url::parse("http://api.wolframalpha.com/v2/query").unwrap();
+    static ref WOLFRAMALPHA_CLIENT_ID: Result<String, String> = env::var("YALTER_BOT_WOLFRAMALPHA_APPID").map_err(|_| "Please set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable".to_string());
 }
 
 enum Commands {
@@ -33,11 +34,11 @@ enum CurrentPod {
 }
 
 impl<'a> module::Module for Module<'a> {
-	fn new() -> Self {
+	fn new() -> Result<Box<module::Module>, String> {
 		static WA: [&'static str; 2] = [ "wolphramalpha", "wa" ];
 		let mut map: HashMap<u32, &[&str]> = HashMap::new();
 		map.insert(Commands::WA as u32, &WA);
-		Module { commands: map }
+		WOLFRAMALPHA_CLIENT_ID.as_ref().map_err(|s| s.clone()).and(Ok(Box::new(Module { commands: map })))
 	}
 
 	fn name(&self) -> &'static str {
@@ -65,7 +66,7 @@ impl<'a> module::Module for Module<'a> {
 
 		let mut url = WOLFRAMALPHA_API_BASE.clone();
 		url.query_pairs_mut()
-			.append_pair("appid", &env::var("YALTER_BOT_WOLFRAMALPHA_APPID").expect("Please set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable."))
+			.append_pair("appid", WOLFRAMALPHA_CLIENT_ID.as_ref().unwrap())
 			.append_pair("input", text);
 
 		println!("URL: {}", url.as_str());

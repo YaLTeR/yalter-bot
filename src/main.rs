@@ -114,21 +114,14 @@ fn main() {
 	// Log in to the API.
 	let discord = Discord::from_bot_token(&token).expect("Login failed");
 
-	let mut modules: Vec<Box<Module>> = Vec::new();
-	modules.push(Box::new(modules::hello::Module::new()));
-	modules.push(Box::new(modules::modules::Module::new()));
-	modules.push(Box::new(modules::fun::Module::new()));
-	modules.push(Box::new(modules::speedruncom::Module::new()));
-	modules.push(Box::new(modules::admin::Module::new()));
-
-	// The Wolfram!Alpha module requires an app-id to work.
-	// Set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable before uncommenting this line.
-	// modules.push(Box::new(modules::wolframalpha::Module::new()));
-
-	// The Invite module requires a bot client ID to work.
-	// Get it from https://discordapp.com/developers/applications/me
-	// Set the YALTER_BOT_CLIENT_ID environment variable before uncommenting this line.
-	// modules.push(Box::new(modules::invite::Module::new()));
+    let modules = vec![modules::hello::Module::new(), modules::modules::Module::new(), modules::fun::Module::new(), modules::speedruncom::Module::new(), modules::admin::Module::new(), modules::wolframalpha::Module::new(), modules::invite::Module::new()].into_iter().filter_map(|m| match m {
+        Ok(m) => Some(m),
+        Err(err) => {
+            println!("{}", err);
+            None
+        }
+    })
+    .collect();
 
 	let mut bot = BotThreadUnsafe::new(discord, modules);
 

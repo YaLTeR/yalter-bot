@@ -36,7 +36,7 @@ enum Commands {
 }
 
 impl<'a> module::Module for Module<'a> {
-	fn new() -> Self {
+	fn new() -> Result<Box<module::Module>, String> {
 		let mut map: HashMap<u32, &[&str]> = HashMap::new();
 		static FRAKTUR: [&'static str; 1] = [ "fraktur" ];
 		map.insert(Commands::Fraktur as u32, &FRAKTUR);
@@ -54,7 +54,7 @@ impl<'a> module::Module for Module<'a> {
 		map.insert(Commands::Aesthetic as u32, &AESTHETIC);
 		static SMALLCAPS: [&'static str; 1] = [ "smallcaps" ];
 		map.insert(Commands::Smallcaps as u32, &SMALLCAPS);
-		Module { commands: map }
+		Ok(Box::new(Module { commands: map }))
 	}
 
 	fn name(&self) -> &'static str {

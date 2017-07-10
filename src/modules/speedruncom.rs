@@ -97,13 +97,13 @@ enum Commands {
 }
 
 impl<'a> module::Module for Module<'a> {
-	fn new() -> Self {
+	fn new() -> Result<Box<module::Module>, String> {
 		static WR: [&'static str; 2] = [ "worldrecord", "wr" ];
 		let mut map: HashMap<u32, &[&str]> = HashMap::new();
 		map.insert(Commands::WR as u32, &WR);
 		static PB: [&'static str; 2] = [ "personalbest", "pb" ];
 		map.insert(Commands::PB as u32, &PB);
-		Module { commands: map }
+		Ok(Box::new(Module { commands: map }))
 	}
 
 	fn name(&self) -> &'static str {
