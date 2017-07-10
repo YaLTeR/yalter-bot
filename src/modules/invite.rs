@@ -50,9 +50,9 @@ impl<'a> module::Module for Module<'a> {
 
 	fn handle(&self, bot: &Bot, message: &Message, _id: u32, _text: &str) {
 		bot.send_pm(
-			&message.author.id,
+			message.author.id,
 			&format!("Follow this link to invite the bot to your server: {}", *INVITE_LINK),
-			&message.channel_id
+			message.channel_id
 		);
 	}
 }

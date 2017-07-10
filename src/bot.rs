@@ -76,7 +76,7 @@ impl Bot {
 		&self.state
 	}
 
-	pub fn send(&self, channel: &ChannelId, text: &str) {
+	pub fn send(&self, channel: ChannelId, text: &str) {
 		self.handle_error(channel,
 			self.discord.send_message(
 				channel,
@@ -86,10 +86,10 @@ impl Bot {
 	}
 
 	#[allow(dead_code)]
-	pub fn edit_or_send_new(&self, channel: &ChannelId, message: &Result<Message>, text: &str) -> Result<Message> {
+	pub fn edit_or_send_new(&self, channel: ChannelId, message: &Result<Message>, text: &str) -> Result<Message> {
 		match *message {
 			Ok(ref msg) => {
-				self.discord.edit_message(&msg.channel_id, &msg.id, text)
+				self.discord.edit_message(msg.channel_id, msg.id, text)
 			},
 
 			Err(_) => {
@@ -98,12 +98,12 @@ impl Bot {
 		}
 	}
 
-	pub fn send_pm(&self, user: &UserId, text: &str, error_reporting_channel: &ChannelId) {
+	pub fn send_pm(&self, user: UserId, text: &str, error_reporting_channel: ChannelId) {
 		match self.discord.create_private_channel(user) {
 			Ok(private_channel) => {
 				self.handle_error(error_reporting_channel,
 					self.discord.send_message(
-						&private_channel.id,
+						private_channel.id,
 						text,
 						"",
 						false));
@@ -120,7 +120,7 @@ impl Bot {
 		}
 	}
 
-	pub fn send_file<R: Read>(&self, channel: &ChannelId, text: &str, file: R, filename: &str) {
+	pub fn send_file<R: Read>(&self, channel: ChannelId, text: &str, file: R, filename: &str) {
 		self.handle_error(channel,
 			self.discord.send_file(
 				channel,
@@ -129,7 +129,7 @@ impl Bot {
 				filename));
 	}
 
-	pub fn broadcast_typing(&self, channel: &ChannelId) {
+	pub fn broadcast_typing(&self, channel: ChannelId) {
 		self.handle_error(channel, self.discord.broadcast_typing(channel));
 	}
 
@@ -137,7 +137,7 @@ impl Bot {
 		// The Discord API accepts up to 100 at once.
 		for chunk in messages.chunks(100) {
 			self.handle_error(
-				&channel,
+				channel,
 				self.discord.delete_messages(channel, chunk)
 			);
 		}
@@ -151,7 +151,7 @@ impl Bot {
 		self.handle_error_and_return(self.discord.get_member(server, user))
 	}
 
-	pub fn create_channel(&self, server: &ServerId, name: &str, kind: ChannelType) -> Result<Channel> {
+	pub fn create_channel(&self, server: ServerId, name: &str, kind: ChannelType) -> Result<Channel> {
 		self.handle_error_and_return(self.discord.create_channel(server, name, kind))
 	}
 
@@ -159,7 +159,7 @@ impl Bot {
 		let _ = self.handle_error_and_return(self.discord.create_permission(channel, target));
 	}
 
-	fn handle_error<T>(&self, channel: &ChannelId, res: Result<T>) {
+	fn handle_error<T>(&self, channel: ChannelId, res: Result<T>) {
 		if let Err(err) = res {
 			if let discord::Error::Status(StatusCode::BadRequest, Some(ref value)) = err {
 				if let Some(msg) = value.lookup("message.content")

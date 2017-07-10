@@ -51,6 +51,6 @@ impl<'a> module::Module for Module<'a> {
 		let mut rng = rand::thread_rng();
 		let index = Range::new(0, emojis.len()).ind_sample(&mut rng);
 
-		bot.send(&message.channel_id, &format!("Hi, {}! {}", message.author.mention(), emojis[index]));
+		bot.send(message.channel_id, &format!("Hi, {}! {}", message.author.mention(), emojis[index]));
 	}
 }

@@ -44,7 +44,7 @@ impl<'a> Module<'a> {
 				buf.push_str(format!("\n- `{}`: {}", m.name(), m.description()).as_str());
 			}
 
-			bot.send(&message.channel_id, &buf);
+			bot.send(message.channel_id, &buf);
 			return;
 		}
 
@@ -80,12 +80,12 @@ impl<'a> Module<'a> {
 					}
 				}
 
-				bot.send(&message.channel_id, &buf);
+				bot.send(message.channel_id, &buf);
 				return;
 			}
 		}
 
-		bot.send(&message.channel_id, format!("There is no module called `{}`.", text).as_str());
+		bot.send(message.channel_id, format!("There is no module called `{}`.", text).as_str());
 	}
 
 	fn handle_commands(&self, bot: &Bot, message: &Message, _text: &str) {
@@ -116,8 +116,8 @@ impl<'a> Module<'a> {
 					c.module.name(),
 					c.module.command_description(c.id)).as_str());
 		}
-		
-		bot.send(&message.channel_id, &buf);
+
+		bot.send(message.channel_id, &buf);
 	}
 
 	fn handle_command(&self, bot: &Bot, message: &Message, text: &str) {
@@ -129,7 +129,7 @@ impl<'a> Module<'a> {
 
 		if text.len() == 0 {
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				&format!(
 					"Bot version {} using **discord-rs**.\n\
 					 `!mods` - list modules!\n\
@@ -171,9 +171,9 @@ impl<'a> Module<'a> {
 		}
 
 		if buf.len() == 0 {
-			bot.send(&message.channel_id, format!("Could not find the `!{}` command in any of the modules!", text).as_str());
+			bot.send(message.channel_id, format!("Could not find the `!{}` command in any of the modules!", text).as_str());
 		} else {
-			bot.send(&message.channel_id, buf.as_str());
+			bot.send(message.channel_id, buf.as_str());
 		}
 	}
 }

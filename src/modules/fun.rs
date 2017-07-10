@@ -139,23 +139,23 @@ impl<'a> module::Module for Module<'a> {
 impl<'a> Module<'a> {
 	fn handle_fraktur(&self, bot: &Bot, message: &Message, text: &str) {
 		let reply = text.chars().map(frakturize).collect::<String>();
-		bot.send(&message.channel_id, &reply);
+		bot.send(message.channel_id, &reply);
 	}
 
 	fn handle_aesthetic(&self, bot: &Bot, message: &Message, text: &str) {
 		let reply = text.chars().map(make_fullwidth).collect::<String>();
-		bot.send(&message.channel_id, &reply);
+		bot.send(message.channel_id, &reply);
 	}
 
 	fn handle_smallcaps(&self, bot: &Bot, message: &Message, text: &str) {
 		let reply = text.chars().map(make_smallcaps).collect::<String>();
-		bot.send(&message.channel_id, &reply);
+		bot.send(message.channel_id, &reply);
 	}
 
 	fn handle_temperature(&self, bot: &Bot, message: &Message, text: &str) {
 		if let Some(caps) = TEMPERATURE_REGEX.captures(text) {
-			let value = caps.at(1).unwrap().parse::<f32>().unwrap();
-			let letter = caps.at(3).unwrap().chars().next().unwrap();
+			let value = caps.get(1).unwrap().as_str().parse::<f32>().unwrap();
+			let letter = caps.get(3).unwrap().as_str().chars().next().unwrap();
 
 			let converted_value = match letter {
 				'C' | 'c' => 9f32 * value / 5f32 + 32f32,
@@ -170,7 +170,7 @@ impl<'a> Module<'a> {
 			};
 
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				&format!(
 					"{:.2}°{} is **{:.2}**°{}.",
 					value,
@@ -181,7 +181,7 @@ impl<'a> Module<'a> {
 			);
 		} else {
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				<Module as module::Module>::command_help_message(&self, Commands::Temperature as u32)
 			);
 		}
@@ -189,8 +189,8 @@ impl<'a> Module<'a> {
 
 	fn handle_roll(&self, bot: &Bot, message: &Message, text: &str) {
 		let caps = ROLL_REGEX.captures(text).unwrap();
-		let max = caps.at(2)
-		              .and_then(|x| x.parse::<u64>().ok())
+		let max = caps.get(2)
+		              .and_then(|x| x.as_str().parse::<u64>().ok())
 		              .map(|x| if x == 0 { 100 } else { x })
 		              .unwrap_or(100);
 
@@ -198,7 +198,7 @@ impl<'a> Module<'a> {
 		let number = Range::new(0, max).ind_sample(&mut rng);
 
 		bot.send(
-			&message.channel_id,
+			message.channel_id,
 			&format!("{} rolled **{}**!", message.author.mention(), number)
 		);
 	}
@@ -208,7 +208,7 @@ impl<'a> Module<'a> {
 
 		if options.len() < 2 {
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				<Module as module::Module>::command_help_message(&self, Commands::Pick as u32)
 			);
 		} else {
@@ -216,16 +216,16 @@ impl<'a> Module<'a> {
 			let index = Range::new(0, options.len()).ind_sample(&mut rng);
 
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				&format!("{}: I pick {}!", message.author.mention(), options[index])
 			);
 		}
 	}
 
 	fn handle_info(&self, bot: &Bot, message: &Message, _text: &str) {
-		match bot.get_state().read().unwrap().find_channel(&message.channel_id) {
+		match bot.get_state().read().unwrap().find_channel(message.channel_id) {
 			Some(ChannelRef::Private(channel)) => {
-				bot.send(&message.channel_id, &format!("```{:#?}```", channel));
+				bot.send(message.channel_id, &format!("```{:#?}```", channel));
 			},
 
 			Some(ChannelRef::Public(server, channel)) => {
@@ -251,30 +251,30 @@ impl<'a> Module<'a> {
 
 				buf.push_str(&format!("\n\nChannel ID: {}```", channel.id.0));
 
-				bot.send(&message.channel_id, &buf);
+				bot.send(message.channel_id, &buf);
 			},
 
 			Some(ChannelRef::Group(group)) => {
-				bot.send(&message.channel_id, &format!("```{:#?}```", group));
+				bot.send(message.channel_id, &format!("```{:#?}```", group));
 			},
 
 			None => {
-				bot.send(&message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
+				bot.send(message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
 			}
 		}
 	}
 
 	fn handle_room(&self, bot: &Bot, message: &Message, _text: &str) {
-		match bot.get_state().read().unwrap().find_channel(&message.channel_id) {
+		match bot.get_state().read().unwrap().find_channel(message.channel_id) {
 			Some(ChannelRef::Private(_)) | Some(ChannelRef::Group(_)) => {
-				bot.send(&message.channel_id, "Well, what do you expect me to do?");
+				bot.send(message.channel_id, "Well, what do you expect me to do?");
 			},
 
 			Some(ChannelRef::Public(server, _)) => {
 				if message.mentions.len() > 0 || message.mention_roles.len() > 0 {
 					let number = rand::random::<u64>();
 
-					match bot.create_channel(&server.id, &format!("🤖 - ybot - {:x}", number), ChannelType::Voice) {
+					match bot.create_channel(server.id, &format!("🤖 - ybot - {:x}", number), ChannelType::Voice) {
 						Ok(Channel::Public(new_channel)) => {
 							// Ban @everyone from joining.
 							bot.create_permissions(new_channel.id, PermissionOverwrite {
@@ -309,27 +309,27 @@ impl<'a> Module<'a> {
 						},
 
 						Ok(Channel::Private(_)) => {
-							bot.send(&message.channel_id, "I made a private channel?! How did I what.");
+							bot.send(message.channel_id, "I made a private channel?! How did I what.");
 						},
 
 						Ok(Channel::Group(_)) => {
-							bot.send(&message.channel_id, "I made a group?! How did I what.");
+							bot.send(message.channel_id, "I made a group?! How did I what.");
 						},
 
 						Err(err) => {
-							bot.send(&message.channel_id, &format!("Couldn't create a new channel: {} :/", err));
+							bot.send(message.channel_id, &format!("Couldn't create a new channel: {} :/", err));
 						}
 					}
 				} else {
 					bot.send(
-						&message.channel_id,
+						message.channel_id,
 						<Module as module::Module>::command_help_message(&self, Commands::Room as u32)
 					);
 				}
 			},
 
 			None => {
-				bot.send(&message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
+				bot.send(message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
 			}
 		}
 	}

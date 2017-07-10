@@ -1,21 +1,16 @@
 [package]
 name = "yalter-bot"
-version = "0.3.3"
+version = "0.4.0"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
-build = "build.rs"
-
-[build-dependencies]
-serde_codegen = "0.8"
 
 [dependencies]
-discord = { git = "https://github.com/SpaceManiac/discord-rs.git" }
-# discord = { path = "../discord-rs/" }
+discord = "0.8"
 hyper = "0.9"
 lazy_static = "0.2"
-libc = "0.2"
 rand = "0.3"
-regex = "0.1"
-serde = "0.8"
-serde_json = "0.8"
-url = { git = "https://github.com/servo/rust-url" }
-xml-rs = "0.3"
+regex = "0.2"
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
+url = "1"
+xml-rs = "0.6"

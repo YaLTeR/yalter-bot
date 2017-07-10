@@ -1,14 +1,16 @@
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
 extern crate rand;
 extern crate regex;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate url;
 extern crate xml;
 
+use std::env;
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -33,16 +35,6 @@ mod modules {
 	pub mod wolframalpha;
 	pub mod invite;
 	pub mod admin;
-}
-
-fn read_file(filename: &str) -> Result<String, io::Error> {
-	let mut f = try!(File::open(filename));
-	let mut s = String::new();
-
-	match f.read_to_string(&mut s) {
-		Ok(_) => Ok(s),
-		Err(e) => Err(e)
-	}
 }
 
 fn parse_command(message: &str) -> Option<(&str, &str)> {
@@ -119,8 +111,8 @@ fn handle_attachment(bot: Arc<Bot>, message: Arc<Message>) {
 }
 
 fn main() {
-	// Read the token from the file.
-	let token = read_file("token.conf").expect("Error reading token.conf");
+	// Read the token.
+	let token = env::var("YALTER_BOT_TOKEN").expect("Please set the YALTER_BOT_TOKEN environment variable");
 
 	// Log in to the API.
 	let discord = Discord::from_bot_token(&token).expect("Login failed");
@@ -161,7 +153,7 @@ fn main() {
 					continue
 				}
 
-				match state.find_channel(&message.channel_id) {
+				match state.find_channel(message.channel_id) {
 					Some(ChannelRef::Public(server, channel)) => {
 						println!("[`{}` `#{}`] `{}`: `{}`", server.name, channel.name, message.author.name, message.content);
 					}

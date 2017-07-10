@@ -13,7 +13,11 @@ use std::fs::File;
 use std::io;
 use std::sync::{RwLock, RwLockReadGuard};
 
-include!(concat!(env!("OUT_DIR"), "/admin_types.rs"));
+#[derive(Serialize, Deserialize)]
+struct Memory {
+	// The map is from ServerId into an array of RoleIds.
+	admin_roles: BTreeMap<String, Vec<u64>>
+}
 
 pub struct Module<'a> {
 	commands: HashMap<u32, &'a [&'a str]>,
@@ -42,7 +46,7 @@ impl Memory {
 				keys_to_remove.push(server.clone());
 			} else {
 				roles.sort();
-				roles.dedup();	
+				roles.dedup();
 			}
 		}
 
@@ -204,9 +208,9 @@ impl<'a> module::Module for Module<'a> {
 	fn handle(&self, bot: &Bot, message: &Message, id: u32, text: &str) {
 		let state = bot.get_state().read().unwrap();
 
-		let has_permission = match state.find_channel(&message.channel_id) {
+		let has_permission = match state.find_channel(message.channel_id) {
 			Some(ChannelRef::Private(_)) => {
-				bot.send(&message.channel_id, "Sorry, but you cannot use the admin commands through PMs. They don't make much sense here anyways.");
+				bot.send(message.channel_id, "Sorry, but you cannot use the admin commands through PMs. They don't make much sense here anyways.");
 				return;
 			},
 
@@ -225,7 +229,7 @@ impl<'a> module::Module for Module<'a> {
 
 						found
 					} else {
-						bot.send(&message.channel_id, "Sorry, I couldn't get your member info.");
+						bot.send(message.channel_id, "Sorry, I couldn't get your member info.");
 						return;
 					}
 				} else {
@@ -234,12 +238,12 @@ impl<'a> module::Module for Module<'a> {
 			},
 
 			Some(ChannelRef::Group(_)) => {
-				bot.send(&message.channel_id, "Admin commands in groups? Hm.");
+				bot.send(message.channel_id, "Admin commands in groups? Hm.");
 				return;
 			},
 
 			None => {
-				bot.send(&message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
+				bot.send(message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
 				return;
 			}
 		};
@@ -262,14 +266,14 @@ impl<'a> Module<'a> {
 	fn handle_admin(&self, bot: &Bot, message: &Message, text: &str, state: RwLockReadGuard<State>) {
 		if let Some(caps) = ADMIN_REGEX.captures(&text.to_lowercase()) {
 			// No need to recheck, we did that in handle().
-			let server = match state.find_channel(&message.channel_id).unwrap() {
+			let server = match state.find_channel(message.channel_id).unwrap() {
 				ChannelRef::Public(server, _) => server,
 				_ => {
 					panic!("Did I just witness some memory corruption?");
 				}
 			};
 
-			match caps.at(1).unwrap() {
+			match caps.get(1).unwrap().as_str() {
 				"list" => {
 					if let Some(admin_roles) = self.memory.read().unwrap().get_admin_roles(server.id) {
 						let mut buf = "Admin roles:".to_owned();
@@ -284,9 +288,9 @@ impl<'a> Module<'a> {
 							});
 						}
 
-						bot.send(&message.channel_id, &buf);
+						bot.send(message.channel_id, &buf);
 					} else {
-						bot.send(&message.channel_id, "There are no admin roles yet.");
+						bot.send(message.channel_id, "There are no admin roles yet.");
 					}
 				},
 
@@ -294,7 +298,7 @@ impl<'a> Module<'a> {
 					if message.mention_roles.len() > 0 {
 						self.memory.write().unwrap().add_admin_roles(server.id, &message.mention_roles);
 					} else {
-						bot.send(&message.channel_id, "You didn't mention any roles.");
+						bot.send(message.channel_id, "You didn't mention any roles.");
 					}
 				},
 
@@ -302,20 +306,20 @@ impl<'a> Module<'a> {
 					if message.mention_roles.len() > 0 {
 						self.memory.write().unwrap().remove_admin_roles(server.id, &message.mention_roles);
 					} else {
-						bot.send(&message.channel_id, "You didn't mention any roles.");
+						bot.send(message.channel_id, "You didn't mention any roles.");
 					}
 				},
 
 				_ => {
 					bot.send(
-						&message.channel_id,
+						message.channel_id,
 						<Module as module::Module>::command_help_message(&self, Commands::Admin as u32)
 					);
 				}
 			}
 		} else {
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				<Module as module::Module>::command_help_message(&self, Commands::Admin as u32)
 			);
 		}
@@ -323,8 +327,8 @@ impl<'a> Module<'a> {
 
 	fn handle_nuke(&self, bot: &Bot, message: &Message, text: &str) {
 		if let Some(amount) = NUKE_REGEX.captures(text)
-		                                .and_then(|x| x.at(2))
-		                                .and_then(|x| x.parse::<u64>().ok())
+		                                .and_then(|x| x.get(2))
+		                                .and_then(|x| x.as_str().parse::<u64>().ok())
 		                                .map(|x| x + 1)
 		                                .and_then(|x| if x <= 1 { None } else { Some(x) }) {
 			let mentioned_user_ids: Vec<UserId> = message.mentions.iter().map(|x| x.id).collect();
@@ -336,11 +340,11 @@ impl<'a> Module<'a> {
 			                                             .collect::<Vec<MessageId>>()) {
 				bot.delete_messages(message.channel_id, &recent_message_ids);
 			} else {
-				bot.send(&message.channel_id, "Error getting the recent messages.");
+				bot.send(message.channel_id, "Error getting the recent messages.");
 			}
 		} else {
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				<Module as module::Module>::command_help_message(&self, Commands::Nuke as u32)
 			);
 		}

@@ -61,7 +61,7 @@ impl<'a> module::Module for Module<'a> {
 	}
 
 	fn handle(&self, bot: &Bot, message: &Message, _id: u32, text: &str) {
-		bot.broadcast_typing(&message.channel_id); // This command takes a few seconds to process.
+		bot.broadcast_typing(message.channel_id); // This command takes a few seconds to process.
 
 		let mut url = WOLFRAMALPHA_API_BASE.clone();
 		url.query_pairs_mut()
@@ -90,7 +90,7 @@ impl<'a> module::Module for Module<'a> {
 										if attr.name.local_name == "numpods" {
 											match attr.value.parse::<u8>() {
 												Ok(0) | Err(_) => {
-													bot.send(&message.channel_id, "Wolfram!Alpha couldn't understand your input. :/");
+													bot.send(message.channel_id, "Wolfram!Alpha couldn't understand your input. :/");
 													error = true;
 													break 'xml_loop;
 												},
@@ -169,7 +169,7 @@ impl<'a> module::Module for Module<'a> {
 					if let Some(img) = pod.image_url {
 						match client.get(&img).send() {
 							Ok(result) => {
-								bot.send_file(&message.channel_id, &text, result, "input_interpretation.gif");
+								bot.send_file(message.channel_id, &text, result, "input_interpretation.gif");
 							},
 
 							Err(err) => {
@@ -182,7 +182,7 @@ impl<'a> module::Module for Module<'a> {
 								}
 								text.push_str(&format!("Something's broken. :/ (Couldn't get the resulting image returned by the API: {})", err.description()));
 
-								bot.send(&message.channel_id, &text);
+								bot.send(message.channel_id, &text);
 							}
 						}
 					}
@@ -197,7 +197,7 @@ impl<'a> module::Module for Module<'a> {
 					if let Some(img) = pod.image_url {
 						match client.get(&img).send() {
 							Ok(result) => {
-								bot.send_file(&message.channel_id, &text, result, "result.gif");
+								bot.send_file(message.channel_id, &text, result, "result.gif");
 							},
 
 							Err(err) => {
@@ -210,17 +210,17 @@ impl<'a> module::Module for Module<'a> {
 								}
 								text.push_str(&format!("Something's broken. :/ (Couldn't get the resulting image returned by the API: {})", err.description()));
 
-								bot.send(&message.channel_id, &text);
+								bot.send(message.channel_id, &text);
 							}
 						}
 					}
 				} else if !error {
-					bot.send(&message.channel_id, "Wolfram!Alpha didn't return a result pod. This probably means that the standard computation time exceeded.");
+					bot.send(message.channel_id, "Wolfram!Alpha didn't return a result pod. This probably means that the standard computation time exceeded.");
 				}
 			},
 
 			Err(err) => {
-				bot.send(&message.channel_id, &format!("Couldn't communicate with http://api.wolframalpha.com. :( ({})", err.description()));
+				bot.send(message.channel_id, &format!("Couldn't communicate with http://api.wolframalpha.com. :( ({})", err.description()));
 			}
 		}
 	}

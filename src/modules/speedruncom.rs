@@ -1,19 +1,18 @@
 use bot::Bot;
 use discord::model::Message;
-use hyper;
-use hyper::client::Client;
+use hyper::{self, Client};
 use hyper::header::UserAgent;
 use module;
 use regex::Regex;
+use serde_json;
 use std::collections::BTreeMap;
 use std::collections::hash_map::HashMap;
 use std::error;
 use std::fmt;
 use std::time::Duration;
-use serde_json;
 use url::Url;
 
-include!(concat!(env!("OUT_DIR"), "/speedruncom_types.rs"));
+include!("speedruncom_types.rs");
 
 pub struct Module<'a> {
 	commands: HashMap<u32, &'a [&'a str]>
@@ -152,7 +151,7 @@ impl<'a> module::Module for Module<'a> {
 
 impl<'a> Module<'a> {
 	fn handle_wr(&self, bot: &Bot, message: &Message, text: &str) {
-		bot.send(&message.channel_id, match get_wrs(&text) {
+		bot.send(message.channel_id, match get_wrs(&text) {
 			Ok((game, wrs)) => {
 				if wrs.len() == 0 {
 					format!("**{}** has no world records. :|", game)
@@ -194,7 +193,7 @@ impl<'a> Module<'a> {
 
 	fn handle_pb(&self, bot: &Bot, message: &Message, text: &str) {
 		if let Some(caps) = PB_REGEX.captures(text) {
-			bot.send(&message.channel_id, match get_pbs(caps.at(1).unwrap(), caps.at(2).unwrap()) {
+			bot.send(message.channel_id, match get_pbs(caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()) {
 				Ok((player, game, mut pbs)) => if pbs.len() == 0 {
 					format!("**{}** has no personal bests in **{}**. :|", player, game)
 				} else {
@@ -239,7 +238,7 @@ impl<'a> Module<'a> {
 			}.as_str());
 		} else {
 			bot.send(
-				&message.channel_id,
+				message.channel_id,
 				<Module as module::Module>::command_help_message(&self, Commands::PB as u32)
 			);
 		}
@@ -249,23 +248,23 @@ impl<'a> Module<'a> {
 fn format_time(time: &Duration) -> String {
 	let total_seconds = time.as_secs();
 	let nanoseconds = time.subsec_nanos();
-	
+
 	let hours = total_seconds / 3600;
 	let minutes = total_seconds / 60 - hours * 60;
 	let seconds = total_seconds - minutes * 60 - hours * 3600;
 	let milliseconds = nanoseconds / 1000000;
-	
+
 	let mut buf = String::new();
 	if hours > 0 {
 		buf.push_str(format!("{:02}:{:02}:{:02}", hours, minutes, seconds).as_str());
 	} else {
 		buf.push_str(format!("{:02}:{:02}", minutes, seconds).as_str());
 	}
-	
+
 	if milliseconds > 0 {
 		buf.push_str(format!(".{:03}", milliseconds).as_str());
 	}
-	
+
 	buf
 }
 
@@ -282,9 +281,9 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 		.append_pair("name", text)
 		.append_pair("embed", "categories.variables")
 		.append_pair("max", "1");
-		
+
 	let client = Client::new();
-	let result = try!(client.get(games.as_str()).header(USERAGENT.clone()).send());
+	let result = try!(client.get(games).send());
 
 	let games: APIGames = try!(serde_json::de::from_reader(result));
 	if games.data.is_empty() {
@@ -366,7 +365,7 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 			wrs.push(WR { category: category.name.clone(), subcategory: None, players: players, time: time });
 		}
 	}
-	
+
 	Ok((game.names.international, wrs))
 }
 
