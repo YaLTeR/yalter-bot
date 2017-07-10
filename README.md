@@ -4,7 +4,10 @@ A simple Discord bot written in Rust using the [discord-rs](https://github.com/S
 This is my "check out / learn Rust" project.
 
 ### Usage
-The bot expects a file named `token.conf` in the working directory, which contains your Discord bot token.
+The bot expects some environment variables:
+- `YALTER_BOT_TOKEN` ­- the Discord bot token,
+- `YALTER_BOT_CLIENT_ID` ­- the Discord bot client ID, set to enable the invite module,
+- `YALTER_BOT_WOLFRAMALPHA_APPID` ­- the Wolfram!Alpha app ID, set to enable the Wolfram!Alpha module.
 
 ### Basic commands
 - `!modules` - view information about modules and their commands.
