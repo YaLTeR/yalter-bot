@@ -103,6 +103,12 @@ fn handle_attachment(bot: Arc<Bot>, message: Arc<Message>) {
                   });
 }
 
+fn handle_message_update(bot: Arc<Bot>, channel_id: ChannelId, id: MessageId) {
+    thread::spawn(move || for module in bot.get_modules() {
+        module.handle_message_update(&bot, channel_id, id);
+    });
+}
+
 fn main() {
     // Read the token.
     let token =
@@ -197,6 +203,11 @@ fn main() {
                 if message_shared.attachments.len() > 0 {
                     handle_attachment(bot.get_sync().clone(), message_shared);
                 }
+            }
+
+            Event::MessageUpdate { id, channel_id, .. } => {
+                handle_message_update(bot.get_sync().clone(),
+                    channel_id, id);
             }
 
             _ => {} // Discard other events.

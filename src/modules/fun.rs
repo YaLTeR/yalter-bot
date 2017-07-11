@@ -7,9 +7,21 @@ use rand::distributions::{IndependentSample, Range};
 use regex::Regex;
 use std::char;
 use std::collections::hash_map::HashMap;
+use std::sync::RwLock;
+
+#[derive(Debug, Clone, Copy)]
+struct CommandMessage {
+    /// Channel of the messages.
+    channel: ChannelId,
+    /// Message with the command.
+    command: MessageId,
+    /// Message the bot sent as a response.
+    output: MessageId,
+}
 
 pub struct Module<'a> {
     commands: HashMap<u32, &'a [&'a str]>,
+    // command_messages: RwLock<CircularBuffer<CommandMessage>>,
 }
 
 lazy_static! {
@@ -134,22 +146,39 @@ impl<'a> module::Module for Module<'a> {
             _ => panic!("Fun::handle - invalid id."),
         }
     }
+
+    fn handle_message_update(&self, bot: &Bot, channel_id: ChannelId, id: MessageId) {
+    }
 }
 
 impl<'a> Module<'a> {
+    // fn remember_command_message(&self, channel_id: ChannelId, command_id: MessageId, output_id: MessageId) {
+    //     self.command_messages.write().unwrap().put(|x| *x = Some(CommandMessage { channel: channel_id, command: command_id, output: output_id }));
+    // }
+    //
+    // fn find_command_message(&self, channel_id: Channelid, command_id: MessageId) {
+    //     self.command_messages.write()
+    // }
+
     fn handle_fraktur(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(frakturize).collect::<String>();
-        bot.send(message.channel_id, &reply);
+        // if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
+        //     self.remember_command_message(message.channel_id, message.id, output.id);
+        // }
     }
 
     fn handle_aesthetic(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(make_fullwidth).collect::<String>();
-        bot.send(message.channel_id, &reply);
+        // if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
+        //     self.remember_command_message(message.channel_id, message.id, output.id);
+        // }
     }
 
     fn handle_smallcaps(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(make_smallcaps).collect::<String>();
-        bot.send(message.channel_id, &reply);
+        // if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
+        //     self.remember_command_message(message.channel_id, message.id, output.id);
+        // }
     }
 
     fn handle_temperature(&self, bot: &Bot, message: &Message, text: &str) {

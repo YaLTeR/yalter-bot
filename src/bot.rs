@@ -81,6 +81,17 @@ impl Bot {
         self.handle_error(channel, self.discord.send_message(channel, text, "", false));
     }
 
+    pub fn send_and_get(&self, channel: ChannelId, text: &str) -> Option<Message> {
+        let result = self.discord.send_message(channel, text, "", false);
+
+        if result.is_ok() {
+            Some(result.unwrap())
+        } else {
+            self.handle_error(channel, result);
+            None
+        }
+    }
+
     #[allow(dead_code)]
     pub fn edit_or_send_new(&self,
                             channel: ChannelId,
