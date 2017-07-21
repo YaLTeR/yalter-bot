@@ -1,9 +1,10 @@
 [package]
 name = "yalter-bot"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 
 [dependencies]
+circular-queue = "0.1"
 discord = "0.8"
 hyper = "0.9"
 lazy_static = "0.2"

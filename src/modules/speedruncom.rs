@@ -297,8 +297,7 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 
     let game = games.data.into_iter().next().unwrap();
 
-    let game_categories =
-        try!(game.categories
+    let game_categories = try!(game.categories
                  .ok_or(MyError::Custom("The `categories` object is absent from the JSON."
                                             .to_owned())));
     let categories: Vec<APICategoryData> = game_categories.data
@@ -459,8 +458,7 @@ fn get_pbs(player_name: &str, game_name: &str) -> Result<(String, String, Vec<PB
     let mut pbs = Vec::new();
 
     for run in runs {
-        let category =
-            try!(run.category
+        let category = try!(run.category
                     .ok_or(MyError::Custom("The `category` object is absent from the JSON."
                                                .to_owned()))
                     .map(|x| x.data));

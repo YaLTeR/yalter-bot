@@ -31,6 +31,9 @@ pub trait Module: Send + Sync {
     // A function that gets called when someone sends a message with an attachment.
     fn handle_attachment(&self, _bot: &Bot, _message: &Message) {}
 
-    // A function that gets called when someone updates (edits or deletes) a message.
+    // A function that gets called when someone edits a message.
     fn handle_message_update(&self, _bot: &Bot, _channel_id: ChannelId, _id: MessageId) {}
+
+    // A function that gets called when someone deletes a message.
+    fn handle_message_delete(&self, _bot: &Bot, _channel_id: ChannelId, _id: MessageId) {}
 }

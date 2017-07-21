@@ -1,3 +1,4 @@
+extern crate circular_queue;
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
@@ -105,8 +106,14 @@ fn handle_attachment(bot: Arc<Bot>, message: Arc<Message>) {
 
 fn handle_message_update(bot: Arc<Bot>, channel_id: ChannelId, id: MessageId) {
     thread::spawn(move || for module in bot.get_modules() {
-        module.handle_message_update(&bot, channel_id, id);
-    });
+                      module.handle_message_update(&bot, channel_id, id);
+                  });
+}
+
+fn handle_message_delete(bot: Arc<Bot>, channel_id: ChannelId, id: MessageId) {
+    thread::spawn(move || for module in bot.get_modules() {
+                      module.handle_message_delete(&bot, channel_id, id);
+                  });
 }
 
 fn main() {
@@ -206,8 +213,14 @@ fn main() {
             }
 
             Event::MessageUpdate { id, channel_id, .. } => {
-                handle_message_update(bot.get_sync().clone(),
-                    channel_id, id);
+                handle_message_update(bot.get_sync().clone(), channel_id, id);
+            }
+
+            Event::MessageDelete {
+                channel_id,
+                message_id,
+            } => {
+                handle_message_delete(bot.get_sync().clone(), channel_id, message_id);
             }
 
             _ => {} // Discard other events.

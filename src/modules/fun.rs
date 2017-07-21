@@ -1,4 +1,5 @@
 use bot::Bot;
+use circular_queue::CircularQueue;
 use discord::ChannelRef;
 use discord::model::*;
 use module;
@@ -9,19 +10,21 @@ use std::char;
 use std::collections::hash_map::HashMap;
 use std::sync::RwLock;
 
+const COMMAND_MESSAGE_QUEUE_SIZE: usize = 64;
+
 #[derive(Debug, Clone, Copy)]
 struct CommandMessage {
-    /// Channel of the messages.
-    channel: ChannelId,
     /// Message with the command.
     command: MessageId,
+    /// Author of the message with the command.
+    author: UserId,
     /// Message the bot sent as a response.
     output: MessageId,
 }
 
 pub struct Module<'a> {
     commands: HashMap<u32, &'a [&'a str]>,
-    // command_messages: RwLock<CircularBuffer<CommandMessage>>,
+    command_messages: RwLock<HashMap<ChannelId, CircularQueue<CommandMessage>>>,
 }
 
 lazy_static! {
@@ -66,7 +69,10 @@ impl<'a> module::Module for Module<'a> {
         map.insert(Commands::Aesthetic as u32, &AESTHETIC);
         static SMALLCAPS: [&'static str; 1] = ["smallcaps"];
         map.insert(Commands::Smallcaps as u32, &SMALLCAPS);
-        Ok(Box::new(Module { commands: map }))
+        Ok(Box::new(Module {
+                        commands: map,
+                        command_messages: RwLock::new(HashMap::new()),
+                    }))
     }
 
     fn name(&self) -> &'static str {
@@ -148,37 +154,93 @@ impl<'a> module::Module for Module<'a> {
     }
 
     fn handle_message_update(&self, bot: &Bot, channel_id: ChannelId, id: MessageId) {
+        if let Some(output) = self.find_command_message(channel_id, id) {
+            if let Ok(message) = bot.get_message(channel_id, output.output) {
+                bot.edit(channel_id,
+                         output.output,
+                         &format!("{:.2000}",
+                                  &format!("{} said: {}",
+                                           output.author.mention(),
+                                           message.content)));
+            }
+        }
+    }
+
+    fn handle_message_delete(&self, bot: &Bot, channel_id: ChannelId, id: MessageId) {
+        if let Some(output) = self.find_command_message(channel_id, id) {
+            if let Ok(message) = bot.get_message(channel_id, output.output) {
+                bot.edit(channel_id,
+                         output.output,
+                         &format!("{:.2000}",
+                                  &format!("{} said: {}",
+                                           output.author.mention(),
+                                           message.content)));
+            }
+        }
     }
 }
 
 impl<'a> Module<'a> {
-    // fn remember_command_message(&self, channel_id: ChannelId, command_id: MessageId, output_id: MessageId) {
-    //     self.command_messages.write().unwrap().put(|x| *x = Some(CommandMessage { channel: channel_id, command: command_id, output: output_id }));
-    // }
-    //
-    // fn find_command_message(&self, channel_id: Channelid, command_id: MessageId) {
-    //     self.command_messages.write()
-    // }
+    fn remember_command_message(&self,
+                                channel_id: ChannelId,
+                                command_id: MessageId,
+                                author: UserId,
+                                output_id: MessageId) {
+        self.command_messages
+            .write()
+            .unwrap()
+            .entry(channel_id)
+            .or_insert_with(|| CircularQueue::new(COMMAND_MESSAGE_QUEUE_SIZE))
+            .push(CommandMessage {
+                      command: command_id,
+                      author,
+                      output: output_id,
+                  });
+    }
+
+    fn find_command_message(&self,
+                            channel_id: ChannelId,
+                            command_id: MessageId)
+                            -> Option<CommandMessage> {
+        self.command_messages
+            .read()
+            .unwrap()
+            .get(&channel_id)
+            .and_then(|x| {
+                          x.iter()
+                           .find(|x| x.command == command_id)
+                           .map(|x| x.clone())
+                      })
+    }
 
     fn handle_fraktur(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(frakturize).collect::<String>();
-        // if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
-        //     self.remember_command_message(message.channel_id, message.id, output.id);
-        // }
+        if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
+            self.remember_command_message(message.channel_id,
+                                          message.id,
+                                          message.author.id,
+                                          output.id);
+        }
     }
 
     fn handle_aesthetic(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(make_fullwidth).collect::<String>();
-        // if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
-        //     self.remember_command_message(message.channel_id, message.id, output.id);
-        // }
+        if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
+            self.remember_command_message(message.channel_id,
+                                          message.id,
+                                          message.author.id,
+                                          output.id);
+        }
     }
 
     fn handle_smallcaps(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(make_smallcaps).collect::<String>();
-        // if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
-        //     self.remember_command_message(message.channel_id, message.id, output.id);
-        // }
+        if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
+            self.remember_command_message(message.channel_id,
+                                          message.id,
+                                          message.author.id,
+                                          output.id);
+        }
     }
 
     fn handle_temperature(&self, bot: &Bot, message: &Message, text: &str) {

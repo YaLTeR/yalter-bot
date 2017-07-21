@@ -105,6 +105,10 @@ impl Bot {
         }
     }
 
+    pub fn edit(&self, channel: ChannelId, message: MessageId, text: &str) {
+        self.handle_error(channel, self.discord.edit_message(channel, message, text));
+    }
+
     pub fn send_pm(&self, user: UserId, text: &str, error_reporting_channel: ChannelId) {
         match self.discord.create_private_channel(user) {
             Ok(private_channel) => {
@@ -138,6 +142,10 @@ impl Bot {
         for chunk in messages.chunks(100) {
             self.handle_error(channel, self.discord.delete_messages(channel, chunk));
         }
+    }
+
+    pub fn get_message(&self, channel: ChannelId, message: MessageId) -> Result<Message> {
+        self.handle_error_and_return(self.discord.get_message(channel, message))
     }
 
     pub fn get_messages(&self,
