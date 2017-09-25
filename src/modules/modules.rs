@@ -123,8 +123,7 @@ impl<'a> Module<'a> {
 
             buf.push_str(format!(" (module `{}`): {}",
                                  c.module.name(),
-                                 c.module.command_description(c.id))
-                         .as_str());
+                                 c.module.command_description(c.id)).as_str());
         }
 
         bot.send(message.channel_id, &buf);
@@ -171,8 +170,7 @@ impl<'a> Module<'a> {
 
                         buf.push_str(format!(": {}\n{}",
                                              m.command_description(id),
-                                             m.command_help_message(id))
-                                     .as_str());
+                                             m.command_help_message(id)).as_str());
                         break;
                     }
                 }
@@ -182,8 +180,7 @@ impl<'a> Module<'a> {
         if buf.len() == 0 {
             bot.send(message.channel_id,
                      format!("Could not find the `!{}` command in any of the modules!",
-                             text)
-                     .as_str());
+                             text).as_str());
         } else {
             bot.send(message.channel_id, buf.as_str());
         }

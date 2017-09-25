@@ -19,9 +19,9 @@ pub struct Module<'a> {
 }
 
 lazy_static! {
-	static ref SPEEDRUNCOM_API_BASE: Url = Url::parse("https://www.speedrun.com/api/v1/").unwrap();
-	static ref USERAGENT: UserAgent = UserAgent(concat!("yalter-bot/", env!("CARGO_PKG_VERSION")).to_string());
-	static ref PB_REGEX: Regex = Regex::new(r"\s*(\S+)\s+(.*)").unwrap();
+    static ref SPEEDRUNCOM_API_BASE: Url = Url::parse("https://www.speedrun.com/api/v1/").unwrap();
+    static ref USERAGENT: UserAgent = UserAgent(concat!("yalter-bot/", env!("CARGO_PKG_VERSION")).to_string());
+    static ref PB_REGEX: Regex = Regex::new(r"\s*(\S+)\s+(.*)").unwrap();
 }
 
 #[derive(Debug)]
@@ -188,8 +188,7 @@ impl<'a> Module<'a> {
                          "There's no such game on speedrun.com! :O".to_string()
                      }
                      Err(err) => format!("Something's broken. :/ ({})", err),
-                 }
-                 .as_str());
+                 }.as_str());
     }
 
     fn handle_pb(&self, bot: &Bot, message: &Message, text: &str) {
@@ -201,7 +200,7 @@ impl<'a> Module<'a> {
                                  format!("**{}** has no personal bests in **{}**. :|", player, game)
                              } else {
                                  let mut buf =
-                    format!("**{}**'s personal bests in **{}**:", player, game);
+                        format!("**{}**'s personal bests in **{}**:", player, game);
 
                                  pbs.sort_by_key(|x| x.category.clone());
 
@@ -241,8 +240,7 @@ impl<'a> Module<'a> {
                              "There's no such player on speedrun.com! :O".to_string()
                          }
                          Err(err) => format!("Something's broken. :/ ({})", err),
-                     }
-                     .as_str());
+                     }.as_str());
         } else {
             bot.send(message.channel_id,
                      <Module as module::Module>::command_help_message(&self, Commands::PB as u32));

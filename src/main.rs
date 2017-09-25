@@ -1,4 +1,5 @@
 extern crate circular_queue;
+extern crate hldemo;
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
@@ -33,6 +34,7 @@ mod modules {
     pub mod wolframalpha;
     pub mod invite;
     pub mod admin;
+    pub mod demos;
 }
 
 fn parse_command(message: &str) -> Option<(&str, &str)> {
@@ -94,7 +96,9 @@ fn handle_command(bot: Arc<Bot>, message: Arc<Message>, command: &str, text: &st
     if let Some((i, id)) = index {
         let text_copy = text.to_string();
 
-        thread::spawn(move || { bot.get_modules()[i].handle(&bot, &message, id, &text_copy); });
+        thread::spawn(move || {
+                          bot.get_modules()[i].handle(&bot, &message, id, &text_copy);
+                      });
     }
 }
 
@@ -132,6 +136,7 @@ fn main() {
         modules::admin::Module::new(),
         modules::wolframalpha::Module::new(),
         modules::invite::Module::new(),
+        modules::demos::Module::new(),
     ]
                   .into_iter()
                   .filter_map(|m| match m {

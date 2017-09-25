@@ -28,15 +28,15 @@ pub struct Module<'a> {
 }
 
 lazy_static! {
-	static ref TEMPERATURE_REGEX: Regex = Regex::new(r"\s*([+-]?[0-9]+(\.[0-9]*)?)\s*([CcFf]).*").unwrap();
-	static ref ROLL_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$))?.*").unwrap();
+    static ref TEMPERATURE_REGEX: Regex = Regex::new(r"\s*([+-]?[0-9]+(\.[0-9]*)?)\s*([CcFf]).*").unwrap();
+    static ref ROLL_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$))?.*").unwrap();
 
-	static ref ROOM_ALLOW_PERMS: Permissions =
-		permissions::VOICE_CONNECT
-		| permissions::VOICE_SPEAK
-		| permissions::MANAGE_CHANNELS
-		| permissions::MANAGE_ROLES;
-	static ref ROOM_DENY_PERMS: Permissions = permissions::VOICE_CONNECT;
+    static ref ROOM_ALLOW_PERMS: Permissions =
+        permissions::VOICE_CONNECT
+        | permissions::VOICE_SPEAK
+        | permissions::MANAGE_CHANNELS
+        | permissions::MANAGE_ROLES;
+    static ref ROOM_DENY_PERMS: Permissions = permissions::VOICE_CONNECT;
 }
 
 enum Commands {
@@ -306,9 +306,10 @@ impl<'a> Module<'a> {
 
     fn handle_info(&self, bot: &Bot, message: &Message, _text: &str) {
         match bot.get_state()
-                   .read()
-                   .unwrap()
-                   .find_channel(message.channel_id) {
+                 .read()
+                 .unwrap()
+                 .find_channel(message.channel_id)
+        {
             Some(ChannelRef::Private(channel)) => {
                 bot.send(message.channel_id, &format!("```{:#?}```", channel));
             }
@@ -353,9 +354,10 @@ impl<'a> Module<'a> {
 
     fn handle_room(&self, bot: &Bot, message: &Message, _text: &str) {
         match bot.get_state()
-                   .read()
-                   .unwrap()
-                   .find_channel(message.channel_id) {
+                 .read()
+                 .unwrap()
+                 .find_channel(message.channel_id)
+        {
             Some(ChannelRef::Private(_)) | Some(ChannelRef::Group(_)) => {
                 bot.send(message.channel_id, "Well, what do you expect me to do?");
             }
@@ -365,8 +367,9 @@ impl<'a> Module<'a> {
                     let number = rand::random::<u64>();
 
                     match bot.create_channel(server.id,
-                                               &format!("🤖 - ybot - {:x}", number),
-                                               ChannelType::Voice) {
+                                             &format!("🤖 - ybot - {:x}", number),
+                                             ChannelType::Voice)
+                    {
                         Ok(Channel::Public(new_channel)) => {
                             // Ban @everyone from joining.
                             bot.create_permissions(new_channel.id, PermissionOverwrite {

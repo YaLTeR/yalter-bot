@@ -14,7 +14,7 @@ pub struct Module<'a> {
 }
 
 lazy_static! {
-	static ref WOLFRAMALPHA_API_BASE: Url = Url::parse("http://api.wolframalpha.com/v2/query").unwrap();
+    static ref WOLFRAMALPHA_API_BASE: Url = Url::parse("http://api.wolframalpha.com/v2/query").unwrap();
     static ref WOLFRAMALPHA_CLIENT_ID: Result<String, String> = env::var("YALTER_BOT_WOLFRAMALPHA_APPID").map_err(|_| "Please set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable".to_string());
 }
 

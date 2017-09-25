@@ -25,8 +25,8 @@ pub struct Module<'a> {
 }
 
 lazy_static! {
-	static ref NUKE_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$)).*").unwrap();
-	static ref ADMIN_REGEX: Regex = Regex::new(r"\s*(list|add|remove)(\s|$).*").unwrap();
+    static ref NUKE_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$)).*").unwrap();
+    static ref ADMIN_REGEX: Regex = Regex::new(r"\s*(list|add|remove)(\s|$).*").unwrap();
 }
 const MEMORY_FILENAME: &'static str = "memory.json";
 
@@ -295,10 +295,8 @@ impl<'a> Module<'a> {
                         for role_id in admin_roles {
                             buf.push_str(&format!("\n- {} ", role_id));
 
-                            buf.push_str(&if let Some(role) = server.roles
-                                                       .iter()
-                                                       .filter(|x| x.id.0 == *role_id)
-                                                       .next()
+                            buf.push_str(&if let Some(role) =
+                                server.roles.iter().filter(|x| x.id.0 == *role_id).next()
                             {
                                 format!("`{}`", role.name)
                             } else {
@@ -362,8 +360,8 @@ impl<'a> Module<'a> {
                    .map(|x| {
                     x.into_iter()
                      .filter(|msg| {
-                                 mentioned_user_ids.len() == 0 ||
-                                     mentioned_user_ids.contains(&msg.author.id)
+                                 mentioned_user_ids.len() == 0
+                                     || mentioned_user_ids.contains(&msg.author.id)
                              })
                      .map(|msg| msg.id)
                      .collect::<Vec<MessageId>>()

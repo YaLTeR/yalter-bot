@@ -9,8 +9,8 @@ pub struct Module<'a> {
 }
 
 lazy_static! {
-	static ref INVITE_LINK: Result<String, String> = env::var("YALTER_BOT_CLIENT_ID").map_err(|_| "Please set the YALTER_BOT_CLIENT_ID environment variable".to_string()).map(|client_id| format!("https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=271707152", client_id)
-	);
+    static ref INVITE_LINK: Result<String, String> = env::var("YALTER_BOT_CLIENT_ID").map_err(|_| "Please set the YALTER_BOT_CLIENT_ID environment variable".to_string()).map(|client_id| format!("https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=271707152", client_id)
+    );
 }
 
 enum Commands {
