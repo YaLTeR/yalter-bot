@@ -4,7 +4,7 @@ version = "0.4.2"
 dependencies = [
  "circular-queue 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "discord 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hldemo 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hldemo 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -177,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "hldemo"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "error-chain 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -838,7 +838,7 @@ dependencies = [
 "checksum flate2 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)" = "e6234dd4468ae5d1e2dbb06fe2b058696fdc50a339c68a393aefbf00bc81e423"
 "checksum gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)" = "5e33ec290da0d127825013597dbdfc28bee4964690c7ce1166cbc2a7bd08b1bb"
 "checksum gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0912515a8ff24ba900422ecda800b52f4016a56251922d397c576bf92c690518"
-"checksum hldemo 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5d4029c60735f69edae5451920ddf571b46f1073b7e198a738fe440252442768"
+"checksum hldemo 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0c5204880e8711e3ae67a11eabe80cc1f653bf773ae7a97f8bb4efaa4aa38781"
 "checksum hpack 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2da7d3a34cf6406d9d700111b8eafafe9a251de41ae71d8052748259343b58"
 "checksum httparse 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "af2f2dd97457e8fb1ae7c5a420db346af389926e36f43768b96f101546b04a07"
 "checksum hyper 0.9.18 (registry+https://github.com/rust-lang/crates.io-index)" = "1b9bf64f730d6ee4b0528a5f0a316363da9d8104318731509d4ccc86248f82b3"

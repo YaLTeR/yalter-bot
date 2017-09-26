@@ -6,7 +6,7 @@ authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 [dependencies]
 circular-queue = "0.1"
 discord = "0.8"
-hldemo = "0.2"
+hldemo = "0.3"
 hyper = "0.9"
 lazy_static = "0.2"
 rand = "0.3"
