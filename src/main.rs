@@ -5,7 +5,6 @@ extern crate hyper;
 extern crate lazy_static;
 extern crate rand;
 extern crate regex;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;

@@ -1,11 +1,12 @@
 [package]
 name = "yalter-bot"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 
 [dependencies]
 circular-queue = "0.1"
-discord = "0.8"
+# discord = "0.8"
+discord = { git = "https://github.com/SpaceManiac/discord-rs.git", default-features = false }
 hldemo = "0.3"
 hyper = "0.9"
 lazy_static = "0.2"

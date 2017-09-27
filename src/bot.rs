@@ -175,10 +175,7 @@ impl Bot {
     fn handle_error<T>(&self, channel: ChannelId, res: Result<T>) {
         if let Err(err) = res {
             if let discord::Error::Status(StatusCode::BadRequest, Some(ref value)) = err {
-                if let Some(msg) = value.lookup("message.content")
-                                        .and_then(|x| x.as_array())
-                                        .and_then(|x| if x.len() == 0 { None } else { Some(x) })
-                                        .and_then(|x| x[0].as_str())
+                if let Some(msg) = value["message"]["content"][0].as_str()
                 {
                     if msg == "String value is too long." {
                         self.send(channel, "I tried sending a message but Discord told me it was too long. :(");
