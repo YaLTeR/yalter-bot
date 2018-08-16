@@ -1,10 +1,12 @@
 use bot::Bot;
 use discord::model::Message;
+use failure::{self, ResultExt};
 use hyper::client::Client;
 use module;
+use serde::{Deserialize, Deserializer};
+use serde_xml_rs::deserialize;
 use std::{collections::hash_map::HashMap, env, error::Error};
 use url::Url;
-use xml::{self, reader::XmlEvent};
 
 pub struct Module<'a> {
     commands: HashMap<u32, &'a [&'a str]>,
@@ -23,15 +25,56 @@ enum Commands {
     WA = 0,
 }
 
-struct Pod {
-    image_url: Option<String>,
-    plaintext: String,
+fn parse_bool<'de, D>(d: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    let s = String::deserialize(d)?;
+    match &s[..] {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        other => Err(D::Error::custom(format!(
+            "got {}, but expected `true` or `false`",
+            other
+        ))),
+    }
 }
 
-#[derive(PartialEq)]
-enum CurrentPod {
-    InputInterpretation,
-    Results,
+#[derive(Deserialize)]
+#[serde(rename = "queryresult")]
+struct QueryResult {
+    #[serde(deserialize_with = "parse_bool")]
+    success: bool,
+    #[serde(deserialize_with = "parse_bool")]
+    error: bool,
+
+    #[serde(rename = "pod", default)]
+    pods: Vec<Pod>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename = "pod")]
+struct Pod {
+    title: String,
+
+    #[serde(rename = "subpod", default)]
+    subpods: Vec<SubPod>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename = "subpod")]
+struct SubPod {
+    #[serde(rename = "img")]
+    image: Option<Img>,
+    plaintext: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename = "img")]
+struct Img {
+    src: String,
 }
 
 impl<'a> module::Module for Module<'a> {
@@ -66,8 +109,30 @@ impl<'a> module::Module for Module<'a> {
     }
 
     fn handle(&self, bot: &Bot, message: &Message, _id: u32, text: &str) {
+        if text.is_empty() {
+            bot.send(
+                message.channel_id,
+                self.command_help_message(Commands::WA as u32),
+            );
+            return;
+        }
+
         bot.broadcast_typing(message.channel_id); // This command takes a few seconds to process.
 
+        if let Err(err) = self.handle_wa(bot, message, text) {
+            let mut buf = format!("{}", err);
+
+            for cause in err.iter_causes() {
+                buf.push_str(&format!("\nCaused by: {}", cause));
+            }
+
+            bot.send(message.channel_id, &buf);
+        }
+    }
+}
+
+impl<'a> Module<'a> {
+    fn handle_wa(&self, bot: &Bot, message: &Message, text: &str) -> Result<(), failure::Error> {
         let mut url = WOLFRAMALPHA_API_BASE.clone();
         url.query_pairs_mut()
             .append_pair("appid", WOLFRAMALPHA_CLIENT_ID.as_ref().unwrap())
@@ -76,185 +141,82 @@ impl<'a> module::Module for Module<'a> {
         println!("URL: {}", url.as_str());
 
         let client = Client::new();
-        match client.get(url.as_str()).send() {
-            Ok(result) => {
-                let mut input_interpretation: Option<Pod> = None;
-                let mut results: Option<Pod> = None;
-                let mut state = CurrentPod::InputInterpretation;
+        let response = client
+            .get(url.as_str())
+            .send()
+            .context("Couldn't communicate with http://api.wolframalpha.com. :(")?;
+        let result: QueryResult = deserialize(response)
+            .context("Couldn't parse Wolfram!Alpha's response, call YaLTeR!")?;
 
-                let mut inside_plaintext = false;
-                let mut error = false;
+        // TODO: this returns an <error> tag too, which gets clashed with the error field.
+        ensure!(!result.error, "Invalid request, call YaLTeR!");
 
-                let reader = xml::reader::EventReader::new(result);
-                'xml_loop: for event in reader {
-                    match event {
-                        Ok(XmlEvent::StartElement {
-                            name, attributes, ..
-                        }) => match name.local_name.as_ref() {
-                            "queryresult" => {
-                                for attr in attributes {
-                                    if attr.name.local_name == "numpods" {
-                                        match attr.value.parse::<u8>() {
-                                            Ok(0) | Err(_) => {
-                                                bot.send(message.channel_id, "Wolfram!Alpha couldn't understand your input. :/");
-                                                error = true;
-                                                break 'xml_loop;
-                                            }
-
-                                            _ => {}
-                                        }
-                                    }
-                                }
-                            }
-
-                            "pod" => {
-                                for attr in attributes {
-                                    if (attr.name.local_name == "title"
-                                        && (attr.value != "Input"
-                                            && attr.value != "Input interpretation"))
-                                        || (attr.name.local_name == "id" && attr.value != "Input")
-                                    {
-                                        state = CurrentPod::Results
-                                    }
-                                }
-                            }
-
-                            "img" => {
-                                for attr in attributes {
-                                    if attr.name.local_name == "src" {
-                                        let pod = match state {
-                                            CurrentPod::InputInterpretation => {
-                                                &mut input_interpretation
-                                            }
-                                            CurrentPod::Results => &mut results,
-                                        };
-
-                                        match pod {
-                                            Some(ref mut x) => {
-                                                x.image_url = Some(attr.value.clone())
-                                            }
-                                            None => {
-                                                *pod = Some(Pod {
-                                                    image_url: Some(attr.value.clone()),
-                                                    plaintext: "".to_string(),
-                                                })
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            "plaintext" => {
-                                inside_plaintext = true;
-                            }
-
-                            _ => {}
-                        },
-
-                        Ok(XmlEvent::Characters(string)) => {
-                            if inside_plaintext {
-                                let pod = match state {
-                                    CurrentPod::InputInterpretation => &mut input_interpretation,
-                                    CurrentPod::Results => &mut results,
-                                };
-
-                                match pod {
-                                    Some(ref mut x) => x.plaintext = string.clone(),
-                                    None => {
-                                        *pod = Some(Pod {
-                                            image_url: None,
-                                            plaintext: string.clone(),
-                                        })
-                                    }
-                                }
-
-                                if state == CurrentPod::Results {
-                                    break 'xml_loop;
-                                }
-                            }
-                        }
-
-                        Ok(XmlEvent::EndDocument) | Err(_) => {
-                            break;
-                        }
-
-                        _ => {}
-                    }
-                }
-
-                if let Some(pod) = input_interpretation {
-                    let mut text = "Input interpretation:".to_string();
-                    if !pod.plaintext.is_empty() {
-                        text.push_str(&format!("\n```\n{}\n```", pod.plaintext));
-                    }
-
-                    if let Some(img) = pod.image_url {
-                        match client.get(&img).send() {
-                            Ok(result) => {
-                                bot.send_file(
-                                    message.channel_id,
-                                    &text,
-                                    result,
-                                    "input_interpretation.gif",
-                                );
-                            }
-
-                            Err(err) => {
-                                if pod.plaintext.is_empty() {
-                                    text = "".to_string();
-                                }
-
-                                if !text.is_empty() {
-                                    text.push_str("\n\n");
-                                }
-                                text.push_str(&format!("Something's broken. :/ (Couldn't get the resulting image returned by the API: {})", err.description()));
-
-                                bot.send(message.channel_id, &text);
-                            }
-                        }
-                    }
-                }
-
-                if let Some(pod) = results {
-                    let mut text = "Result:".to_string();
-                    if !pod.plaintext.is_empty() {
-                        text.push_str(&format!("\n```\n{}\n```", pod.plaintext));
-                    }
-
-                    if let Some(img) = pod.image_url {
-                        match client.get(&img).send() {
-                            Ok(result) => {
-                                bot.send_file(message.channel_id, &text, result, "result.gif");
-                            }
-
-                            Err(err) => {
-                                if pod.plaintext.is_empty() {
-                                    text = "".to_string();
-                                }
-
-                                if !text.is_empty() {
-                                    text.push_str("\n\n");
-                                }
-                                text.push_str(&format!("Something's broken. :/ (Couldn't get the resulting image returned by the API: {})", err.description()));
-
-                                bot.send(message.channel_id, &text);
-                            }
-                        }
-                    }
-                } else if !error {
-                    bot.send(message.channel_id, "Wolfram!Alpha didn't return a result pod. This probably means that the standard computation time exceeded.");
-                }
-            }
-
-            Err(err) => {
-                bot.send(
-                    message.channel_id,
-                    &format!(
-                        "Couldn't communicate with http://api.wolframalpha.com. :( ({})",
-                        err.description()
-                    ),
-                );
-            }
+        if !result.success {
+            // TODO: print tips and whatnot.
+            bail!("Wolphram!Alpha couldn't understand your input. :/");
         }
+
+        let send_pod_contents = |pod: &Pod, text: &str, image_filename| {
+            let mut text = text.to_owned();
+
+            if let Some(subpod) = pod.subpods.iter().find(|s| {
+                !s.plaintext
+                    .as_ref()
+                    .map(String::as_ref)
+                    .unwrap_or("")
+                    .is_empty()
+            }) {
+                text.push_str(&format!(
+                    "\n```\n{}\n```",
+                    subpod.plaintext.as_ref().unwrap()
+                ));
+            }
+
+            if let Some(subpod) = pod.subpods.iter().find(|s| s.image.is_some()) {
+                match client.get(&subpod.image.as_ref().unwrap().src).send() {
+                    Ok(result) => {
+                        bot.send_file(message.channel_id, &text, result, image_filename);
+                    }
+                    Err(err) => {
+                        if !text.is_empty() {
+                            text.push_str("\n\n");
+                        }
+
+                        text.push_str(&format!(
+                            "Something's broken. :/ \
+                             (Couldn't get the resulting image returned by the API: {})",
+                            err.description()
+                        ));
+
+                        bot.send(message.channel_id, &text);
+                    }
+                }
+            }
+        };
+
+        let is_input_interpretation =
+            |pod: &Pod| pod.title == "Input" || pod.title == "Input interpretation";
+
+        if let Some(input_interpretation) =
+            result.pods.iter().find(|pod| is_input_interpretation(pod))
+        {
+            send_pod_contents(
+                input_interpretation,
+                "Input interpretation:",
+                "input_interpretation.gif",
+            );
+        }
+
+        if let Some(results) = result.pods.iter().find(|pod| !is_input_interpretation(pod)) {
+            send_pod_contents(results, "Result:", "result.gif");
+        } else {
+            bot.send(
+                message.channel_id,
+                "Wolfram!Alpha didn't return a result pod. \
+                 This probably means that the standard computation time exceeded.",
+            );
+        }
+
+        Ok(())
     }
 }

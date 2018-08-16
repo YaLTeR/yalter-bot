@@ -6,7 +6,8 @@ authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 [dependencies]
 circular-queue = "0.2"
 # discord = "0.8"
-discord = { git = "https://github.com/SpaceManiac/discord-rs.git", default-features = false }
+discord = { git = "https://github.com/io12/discord-rs", rev = "8bca63e1177d5d00ff4c145a277de89a3e72dc2b", default-features = false }
+failure = "0.1"
 hldemo = "0.3"
 hyper = "0.9"
 lazy_static = "1"
@@ -15,5 +16,5 @@ regex = "1"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
+serde-xml-rs = "0.2"
 url = "1"
-xml-rs = "0.8"

@@ -1,15 +1,18 @@
 extern crate circular_queue;
+#[macro_use]
+extern crate failure;
 extern crate hldemo;
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
 extern crate rand;
 extern crate regex;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_xml_rs;
 extern crate url;
-extern crate xml;
 
 use std::{env, sync::Arc, thread};
 
