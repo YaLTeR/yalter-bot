@@ -211,11 +211,7 @@ impl<'a> Module<'a> {
             .read()
             .unwrap()
             .get(&channel_id)
-            .and_then(|x| {
-                x.iter()
-                    .find(|x| x.command == command_id)
-                    .map(|x| x.clone())
-            })
+            .and_then(|x| x.iter().find(|x| x.command == command_id).cloned())
     }
 
     fn handle_fraktur(&self, bot: &Bot, message: &Message, text: &str) {
@@ -309,7 +305,7 @@ impl<'a> Module<'a> {
     }
 
     fn handle_pick(&self, bot: &Bot, message: &Message, text: &str) {
-        let options: Vec<&str> = text.split(';').filter(|x| x.len() > 0).collect();
+        let options: Vec<&str> = text.split(';').filter(|x| !x.is_empty()).collect();
 
         if options.len() < 2 {
             bot.send(
@@ -354,7 +350,7 @@ impl<'a> Module<'a> {
                     }
                 );
 
-                if server.roles.len() == 0 {
+                if server.roles.is_empty() {
                     buf.push_str(" N/A");
                 } else {
                     for role in &server.roles {
@@ -392,7 +388,7 @@ impl<'a> Module<'a> {
             }
 
             Some(ChannelRef::Public(server, _)) => {
-                if message.mentions.len() > 0 || message.mention_roles.len() > 0 {
+                if !message.mentions.is_empty() || !message.mention_roles.is_empty() {
                     let number = rand::random::<u64>();
 
                     match bot.create_channel(

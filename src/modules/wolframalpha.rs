@@ -92,9 +92,7 @@ impl<'a> module::Module for Module<'a> {
                 'xml_loop: for event in reader {
                     match event {
                         Ok(XmlEvent::StartElement {
-                            name,
-                            attributes,
-                            namespace: _,
+                            name, attributes, ..
                         }) => match name.local_name.as_ref() {
                             "queryresult" => {
                                 for attr in attributes {
@@ -135,10 +133,10 @@ impl<'a> module::Module for Module<'a> {
                                         };
 
                                         match pod {
-                                            &mut Some(ref mut x) => {
+                                            Some(ref mut x) => {
                                                 x.image_url = Some(attr.value.clone())
                                             }
-                                            &mut None => {
+                                            None => {
                                                 *pod = Some(Pod {
                                                     image_url: Some(attr.value.clone()),
                                                     plaintext: "".to_string(),
@@ -164,8 +162,8 @@ impl<'a> module::Module for Module<'a> {
                                 };
 
                                 match pod {
-                                    &mut Some(ref mut x) => x.plaintext = string.clone(),
-                                    &mut None => {
+                                    Some(ref mut x) => x.plaintext = string.clone(),
+                                    None => {
                                         *pod = Some(Pod {
                                             image_url: None,
                                             plaintext: string.clone(),
@@ -189,7 +187,7 @@ impl<'a> module::Module for Module<'a> {
 
                 if let Some(pod) = input_interpretation {
                     let mut text = "Input interpretation:".to_string();
-                    if pod.plaintext.len() > 0 {
+                    if !pod.plaintext.is_empty() {
                         text.push_str(&format!("\n```\n{}\n```", pod.plaintext));
                     }
 
@@ -205,11 +203,11 @@ impl<'a> module::Module for Module<'a> {
                             }
 
                             Err(err) => {
-                                if pod.plaintext.len() == 0 {
+                                if pod.plaintext.is_empty() {
                                     text = "".to_string();
                                 }
 
-                                if text.len() > 0 {
+                                if !text.is_empty() {
                                     text.push_str("\n\n");
                                 }
                                 text.push_str(&format!("Something's broken. :/ (Couldn't get the resulting image returned by the API: {})", err.description()));
@@ -222,7 +220,7 @@ impl<'a> module::Module for Module<'a> {
 
                 if let Some(pod) = results {
                     let mut text = "Result:".to_string();
-                    if pod.plaintext.len() > 0 {
+                    if !pod.plaintext.is_empty() {
                         text.push_str(&format!("\n```\n{}\n```", pod.plaintext));
                     }
 
@@ -233,11 +231,11 @@ impl<'a> module::Module for Module<'a> {
                             }
 
                             Err(err) => {
-                                if pod.plaintext.len() == 0 {
+                                if pod.plaintext.is_empty() {
                                     text = "".to_string();
                                 }
 
-                                if text.len() > 0 {
+                                if !text.is_empty() {
                                     text.push_str("\n\n");
                                 }
                                 text.push_str(&format!("Something's broken. :/ (Couldn't get the resulting image returned by the API: {})", err.description()));

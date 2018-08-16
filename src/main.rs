@@ -85,7 +85,7 @@ fn handle_command(bot: Arc<Bot>, message: Arc<Message>, command: &str, text: &st
         let module = &bot.get_modules()[i];
 
         for (&id, &cmds) in module.commands() {
-            if let Some(_) = cmds.iter().find(|&&x| x == command) {
+            if cmds.iter().any(|&x| x == command) {
                 index = Some((i, id));
                 break 'outer;
             }
@@ -154,14 +154,7 @@ fn main() {
     let mut bot = BotThreadUnsafe::new(discord, modules);
 
     // Main loop.
-    loop {
-        let event = match bot.receive_event() {
-            Some(event) => event,
-            None => {
-                break;
-            }
-        };
-
+    while let Some(event) = bot.receive_event() {
         match event {
             Event::MessageCreate(message) => {
                 let state = bot.get_sync().get_state().read().unwrap();
@@ -218,7 +211,7 @@ fn main() {
                 }
 
                 // Handle the attachments.
-                if message_shared.attachments.len() > 0 {
+                if !message_shared.attachments.is_empty() {
                     handle_attachment(bot.get_sync().clone(), message_shared);
                 }
             }

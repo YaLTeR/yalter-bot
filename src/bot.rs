@@ -28,11 +28,11 @@ impl BotThreadUnsafe {
         );
 
         BotThreadUnsafe {
-            connection: connection,
+            connection,
             sync_part: Arc::new(Bot {
-                discord: discord,
+                discord,
                 state: RwLock::new(State::new(ready)),
-                modules: modules,
+                modules,
             }),
         }
     }
@@ -206,6 +206,6 @@ impl Bot {
             println!("[Warning] {:?}", err);
         }
 
-        return res;
+        res
     }
 }

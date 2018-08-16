@@ -28,7 +28,7 @@ lazy_static! {
     static ref NUKE_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$)).*").unwrap();
     static ref ADMIN_REGEX: Regex = Regex::new(r"\s*(list|add|remove)(\s|$).*").unwrap();
 }
-const MEMORY_FILENAME: &'static str = "memory.json";
+const MEMORY_FILENAME: &str = "memory.json";
 
 enum Commands {
     Admin = 0,
@@ -42,7 +42,7 @@ impl Memory {
 
         let mut keys_to_remove = Vec::new();
         for (server, roles) in &mut memory.admin_roles {
-            if roles.len() == 0 {
+            if roles.is_empty() {
                 keys_to_remove.push(server.clone());
             } else {
                 roles.sort();
@@ -68,13 +68,13 @@ impl Memory {
         self.admin_roles.get(&server.0.to_string())
     }
 
-    pub fn remove_admin_roles(&mut self, server: ServerId, roles: &Vec<RoleId>) {
+    pub fn remove_admin_roles(&mut self, server: ServerId, roles: &[RoleId]) {
         let mut remove = false;
 
         if let Some(server_admin_roles) = self.admin_roles.get_mut(&server.0.to_string()) {
-            server_admin_roles.retain(|x| roles.iter().filter(|r| r.0 == *x).next().is_none());
+            server_admin_roles.retain(|x| roles.iter().find(|r| r.0 == *x).is_none());
 
-            if server_admin_roles.len() == 0 {
+            if server_admin_roles.is_empty() {
                 remove = true;
             }
         }
@@ -88,12 +88,12 @@ impl Memory {
         }
     }
 
-    pub fn add_admin_roles(&mut self, server: ServerId, roles: &Vec<RoleId>) {
+    pub fn add_admin_roles(&mut self, server: ServerId, roles: &[RoleId]) {
         {
             let server_admin_roles = self
                 .admin_roles
                 .entry(server.0.to_string())
-                .or_insert(Vec::new());
+                .or_insert_with(Vec::new);
 
             for role in roles {
                 server_admin_roles.push(role.0);
@@ -269,7 +269,7 @@ impl<'a> module::Module for Module<'a> {
         }
 
         match id {
-            x if x == Commands::Admin as u32 => self.handle_admin(bot, message, text, state),
+            x if x == Commands::Admin as u32 => self.handle_admin(bot, message, text, &state),
             x if x == Commands::Nuke as u32 => self.handle_nuke(bot, message, text),
             _ => panic!("Admin::handle - invalid id."),
         }
@@ -282,7 +282,7 @@ impl<'a> Module<'a> {
         bot: &Bot,
         message: &Message,
         text: &str,
-        state: RwLockReadGuard<State>,
+        state: &RwLockReadGuard<State>,
     ) {
         if let Some(caps) = ADMIN_REGEX.captures(&text.to_lowercase()) {
             // No need to recheck, we did that in handle().
@@ -304,7 +304,7 @@ impl<'a> Module<'a> {
                             buf.push_str(&format!("\n- {} ", role_id));
 
                             buf.push_str(&if let Some(role) =
-                                server.roles.iter().filter(|x| x.id.0 == *role_id).next()
+                                server.roles.iter().find(|x| x.id.0 == *role_id)
                             {
                                 format!("`{}`", role.name)
                             } else {
@@ -319,7 +319,7 @@ impl<'a> Module<'a> {
                 }
 
                 "add" => {
-                    if message.mention_roles.len() > 0 {
+                    if !message.mention_roles.is_empty() {
                         self.memory
                             .write()
                             .unwrap()
@@ -330,7 +330,7 @@ impl<'a> Module<'a> {
                 }
 
                 "remove" => {
-                    if message.mention_roles.len() > 0 {
+                    if !message.mention_roles.is_empty() {
                         self.memory
                             .write()
                             .unwrap()
@@ -373,7 +373,7 @@ impl<'a> Module<'a> {
                 .map(|x| {
                     x.into_iter()
                         .filter(|msg| {
-                            mentioned_user_ids.len() == 0
+                            mentioned_user_ids.is_empty()
                                 || mentioned_user_ids.contains(&msg.author.id)
                         }).map(|msg| msg.id)
                         .collect::<Vec<MessageId>>()

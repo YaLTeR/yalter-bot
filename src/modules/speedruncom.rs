@@ -154,7 +154,7 @@ impl<'a> Module<'a> {
             message.channel_id,
             match get_wrs(&text) {
                 Ok((game, wrs)) => {
-                    if wrs.len() == 0 {
+                    if wrs.is_empty() {
                         format!("**{}** has no world records. :|", game)
                     } else {
                         let mut buf = format!("World records for **{}**:", game);
@@ -200,7 +200,7 @@ impl<'a> Module<'a> {
                 message.channel_id,
                 match get_pbs(caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()) {
                     Ok((player, game, mut pbs)) => {
-                        if pbs.len() == 0 {
+                        if pbs.is_empty() {
                             format!("**{}** has no personal bests in **{}**. :|", player, game)
                         } else {
                             let mut buf =
@@ -264,7 +264,7 @@ fn format_time(time: &Duration) -> String {
     let hours = total_seconds / 3600;
     let minutes = total_seconds / 60 - hours * 60;
     let seconds = total_seconds - minutes * 60 - hours * 3600;
-    let milliseconds = nanoseconds / 1000000;
+    let milliseconds = nanoseconds / 1_000_000;
 
     let mut buf = String::new();
     if hours > 0 {
@@ -305,7 +305,7 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 
     let game = games.data.into_iter().next().unwrap();
 
-    let game_categories = try!(game.categories.ok_or(MyError::Custom(
+    let game_categories = try!(game.categories.ok_or_else(|| MyError::Custom(
         "The `categories` object is absent from the JSON.".to_owned()
     )));
     let categories: Vec<APICategoryData> = game_categories
@@ -322,13 +322,12 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
 
     let mut wrs = Vec::new();
 
-    for category in categories.into_iter() {
+    for category in categories {
         if let Some(subcategory_variable) = category
             .variables
             .data
             .into_iter()
-            .filter(|x| x.is_subcategory)
-            .next()
+            .find(|x| x.is_subcategory)
         {
             // Get runs for each subcategory value.
 
@@ -373,14 +372,14 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
                         x.names
                             .map(|n| n.international)
                             .or(x.name)
-                            .unwrap_or("nameless player".to_owned())
+                            .unwrap_or_else(|| "nameless player".to_owned())
                     }).collect();
 
                 wrs.push(WR {
                     category: category.name.clone(),
                     subcategory: Some(value.label),
-                    players: players,
-                    time: time,
+                    players,
+                    time,
                 });
             }
         } else {
@@ -424,14 +423,14 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
                     x.names
                         .map(|n| n.international)
                         .or(x.name)
-                        .unwrap_or("nameless player".to_owned())
+                        .unwrap_or_else(|| "nameless player".to_owned())
                 }).collect();
 
             wrs.push(WR {
                 category: category.name.clone(),
                 subcategory: None,
-                players: players,
-                time: time,
+                players,
+                time,
             });
         }
     }
@@ -478,20 +477,21 @@ fn get_pbs(player_name: &str, game_name: &str) -> Result<(String, String, Vec<PB
 
     let user: APIUsers = try!(serde_json::de::from_reader(result));
 
-    if let Some(_) = user.status {
+    if user.status.is_some() {
         return Err(MyError::NoSuchPlayer);
     }
 
-    let runs = try!(user.data.ok_or(MyError::Custom(
-        "The `data` array is absent from the JSON.".to_owned()
-    )));
+    let runs = try!(
+        user.data
+            .ok_or_else(|| MyError::Custom("The `data` array is absent from the JSON.".to_owned()))
+    );
 
     let mut pbs = Vec::new();
 
     for run in runs {
         let category = try!(
             run.category
-                .ok_or(MyError::Custom(
+                .ok_or_else(|| MyError::Custom(
                     "The `category` object is absent from the JSON.".to_owned()
                 )).map(|x| x.data)
         );
@@ -506,8 +506,8 @@ fn get_pbs(player_name: &str, game_name: &str) -> Result<(String, String, Vec<PB
 
         pbs.push(PB {
             category: category.name,
-            subcategories: get_subcategories(&run.run, subcategory_variables),
-            time: time,
+            subcategories: get_subcategories(&run.run, &subcategory_variables),
+            time,
             place: run.place,
         });
     }
@@ -540,7 +540,7 @@ fn get_subcategory_variables(category: &APICategoryData) -> Vec<SubcategoryVaria
 
 fn get_subcategories(
     run: &APIRunRun,
-    subcategory_variables: Vec<SubcategoryVariable>,
+    subcategory_variables: &[SubcategoryVariable],
 ) -> Vec<String> {
     run.values
         .iter()

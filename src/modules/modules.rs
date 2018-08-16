@@ -37,7 +37,7 @@ enum Commands {
 
 impl<'a> Module<'a> {
     fn handle_modules(&self, bot: &Bot, message: &Message, text: &str) {
-        if text.len() == 0 {
+        if text.is_empty() {
             let mut buf = "List of available modules:".to_string();
             for m in bot.get_modules() {
                 buf.push_str(format!("\n- `{}`: {}", m.name(), m.description()).as_str());
@@ -57,12 +57,12 @@ impl<'a> Module<'a> {
                 for (&id, &cmds) in m.commands() {
                     commands.push(Command {
                         module: &**m,
-                        id: id,
+                        id,
                         names: &cmds,
                     });
                 }
 
-                if commands.len() == 0 {
+                if commands.is_empty() {
                     buf.push_str("\nThere are no commands defined by this module.");
                 } else {
                     commands.sort_by(|a, b| a.cmp(b));
@@ -100,7 +100,7 @@ impl<'a> Module<'a> {
             for (&id, &cmds) in m.commands() {
                 commands.push(Command {
                     module: &**m,
-                    id: id,
+                    id,
                     names: &cmds,
                 });
             }
@@ -139,7 +139,7 @@ impl<'a> Module<'a> {
             text
         };
 
-        if text.len() == 0 {
+        if text.is_empty() {
             bot.send(
                 message.channel_id,
                 &format!(
@@ -163,7 +163,7 @@ impl<'a> Module<'a> {
             for (&id, &cmds) in m.commands() {
                 for &alias in cmds {
                     if alias == text {
-                        if buf.len() != 0 {
+                        if !buf.is_empty() {
                             buf.push_str("\n\n");
                         }
 
@@ -188,7 +188,7 @@ impl<'a> Module<'a> {
             }
         }
 
-        if buf.len() == 0 {
+        if buf.is_empty() {
             bot.send(
                 message.channel_id,
                 format!(
