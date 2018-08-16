@@ -837,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "yalter-bot"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "circular-queue 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "discord 0.8.0 (git+https://github.com/io12/discord-rs?rev=8bca63e1177d5d00ff4c145a277de89a3e72dc2b)",
