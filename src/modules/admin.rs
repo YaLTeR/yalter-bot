@@ -37,8 +37,8 @@ enum Commands {
 
 impl Memory {
     fn load_from_file() -> MyResult<Self> {
-        let file = try!(File::open(MEMORY_FILENAME));
-        let mut memory: Memory = try!(serde_json::de::from_reader(file));
+        let file = File::open(MEMORY_FILENAME)?;
+        let mut memory: Memory = serde_json::de::from_reader(file)?;
 
         let mut keys_to_remove = Vec::new();
         for (server, roles) in &mut memory.admin_roles {
@@ -58,8 +58,8 @@ impl Memory {
     }
 
     fn save_to_file(&self) -> MyResult<()> {
-        let mut file = try!(File::create(MEMORY_FILENAME));
-        try!(serde_json::ser::to_writer(&mut file, &self));
+        let mut file = File::create(MEMORY_FILENAME)?;
+        serde_json::ser::to_writer(&mut file, &self)?;
 
         Ok(())
     }

@@ -296,18 +296,18 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
         .append_pair("max", "1");
 
     let client = Client::new();
-    let result = try!(client.get(games).send());
+    let result = client.get(games).send()?;
 
-    let games: APIGames = try!(serde_json::de::from_reader(result));
+    let games: APIGames = serde_json::de::from_reader(result)?;
     if games.data.is_empty() {
         return Err(MyError::NoSuchGame);
     }
 
     let game = games.data.into_iter().next().unwrap();
 
-    let game_categories = try!(game.categories.ok_or_else(|| MyError::Custom(
-        "The `categories` object is absent from the JSON.".to_owned()
-    )));
+    let game_categories = game.categories.ok_or_else(|| {
+        MyError::Custom("The `categories` object is absent from the JSON.".to_owned())
+    })?;
     let categories: Vec<APICategoryData> = game_categories
         .data
         .into_iter()
@@ -332,13 +332,11 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
             // Get runs for each subcategory value.
 
             for (value_id, value) in subcategory_variable.values.values {
-                let mut leaderboard = try!(
-                    SPEEDRUNCOM_API_BASE
-                        .join(&format!(
-                            "leaderboards/{}/category/{}",
-                            game.id, category.id
-                        )).map_err(|x| x.to_string())
-                );
+                let mut leaderboard = SPEEDRUNCOM_API_BASE
+                    .join(&format!(
+                        "leaderboards/{}/category/{}",
+                        game.id, category.id
+                    )).map_err(|x| x.to_string())?;
 
                 leaderboard
                     .query_pairs_mut()
@@ -346,14 +344,12 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
                     .append_pair("embed", "players")
                     .append_pair(&format!("var-{}", subcategory_variable.id), &value_id);
 
-                let result = try!(
-                    client
-                        .get(leaderboard.as_str())
-                        .header(USERAGENT.clone())
-                        .send()
-                );
+                let result = client
+                    .get(leaderboard.as_str())
+                    .header(USERAGENT.clone())
+                    .send()?;
 
-                let leaderboard: APILeaderboards = try!(serde_json::de::from_reader(result));
+                let leaderboard: APILeaderboards = serde_json::de::from_reader(result)?;
 
                 let runs = leaderboard.data.runs;
                 if runs.is_empty() {
@@ -385,26 +381,22 @@ fn get_wrs(text: &str) -> Result<(String, Vec<WR>), MyError> {
         } else {
             // No subcategories, just get runs.
 
-            let mut leaderboard = try!(
-                SPEEDRUNCOM_API_BASE
-                    .join(&format!(
-                        "leaderboards/{}/category/{}",
-                        game.id, category.id
-                    )).map_err(|x| x.to_string())
-            );
+            let mut leaderboard = SPEEDRUNCOM_API_BASE
+                .join(&format!(
+                    "leaderboards/{}/category/{}",
+                    game.id, category.id
+                )).map_err(|x| x.to_string())?;
 
             leaderboard
                 .query_pairs_mut()
                 .append_pair("top", "1")
                 .append_pair("embed", "players");
 
-            let result = try!(
-                client
-                    .get(leaderboard.as_str())
-                    .header(USERAGENT.clone())
-                    .send()
-            );
-            let leaderboard: APILeaderboards = try!(serde_json::de::from_reader(result));
+            let result = client
+                .get(leaderboard.as_str())
+                .header(USERAGENT.clone())
+                .send()?;
+            let leaderboard: APILeaderboards = serde_json::de::from_reader(result)?;
 
             let runs = leaderboard.data.runs;
             if runs.is_empty() {
@@ -453,48 +445,50 @@ fn get_pbs(player_name: &str, game_name: &str) -> Result<(String, String, Vec<PB
         .append_pair("max", "1");
 
     let client = Client::new();
-    let result = try!(client.get(games.as_str()).header(USERAGENT.clone()).send());
+    let result = client
+        .get(games.as_str())
+        .header(USERAGENT.clone())
+        .send()?;
 
-    let games: APIGames = try!(serde_json::de::from_reader(result));
+    let games: APIGames = serde_json::de::from_reader(result)?;
     if games.data.is_empty() {
         return Err(MyError::NoSuchGame);
     }
 
     let game = games.data.into_iter().next().unwrap();
 
-    let mut users = try!(
-        SPEEDRUNCOM_API_BASE
-            .join(&format!("users/{}/personal-bests", player_name))
-            .map_err(|x| x.to_string())
-    );
+    let mut users = SPEEDRUNCOM_API_BASE
+        .join(&format!("users/{}/personal-bests", player_name))
+        .map_err(|x| x.to_string())?;
 
     users
         .query_pairs_mut()
         .append_pair("game", &game.id)
         .append_pair("embed", "category.variables");
 
-    let result = try!(client.get(users.as_str()).header(USERAGENT.clone()).send());
+    let result = client
+        .get(users.as_str())
+        .header(USERAGENT.clone())
+        .send()?;
 
-    let user: APIUsers = try!(serde_json::de::from_reader(result));
+    let user: APIUsers = serde_json::de::from_reader(result)?;
 
     if user.status.is_some() {
         return Err(MyError::NoSuchPlayer);
     }
 
-    let runs = try!(
-        user.data
-            .ok_or_else(|| MyError::Custom("The `data` array is absent from the JSON.".to_owned()))
-    );
+    let runs = user
+        .data
+        .ok_or_else(|| MyError::Custom("The `data` array is absent from the JSON.".to_owned()))?;
 
     let mut pbs = Vec::new();
 
     for run in runs {
-        let category = try!(
-            run.category
-                .ok_or_else(|| MyError::Custom(
-                    "The `category` object is absent from the JSON.".to_owned()
-                )).map(|x| x.data)
-        );
+        let category = run
+            .category
+            .ok_or_else(|| {
+                MyError::Custom("The `category` object is absent from the JSON.".to_owned())
+            }).map(|x| x.data)?;
 
         if category.type_ != "per-game" {
             continue;
