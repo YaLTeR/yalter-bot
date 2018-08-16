@@ -1,13 +1,10 @@
 use bot::Bot;
 use circular_queue::CircularQueue;
-use discord::model::*;
-use discord::ChannelRef;
+use discord::{model::*, ChannelRef};
 use module;
 use rand::{self, Rng};
 use regex::Regex;
-use std::char;
-use std::collections::hash_map::HashMap;
-use std::sync::RwLock;
+use std::{char, collections::hash_map::HashMap, sync::RwLock};
 
 const COMMAND_MESSAGE_QUEUE_SIZE: usize = 64;
 

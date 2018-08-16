@@ -11,19 +11,19 @@ extern crate serde_json;
 extern crate url;
 extern crate xml;
 
-use std::env;
-use std::sync::Arc;
-use std::thread;
+use std::{env, sync::Arc, thread};
 
 extern crate discord;
-use discord::model::*;
-use discord::{ChannelRef, Discord};
+use discord::{
+    model::{ChannelId, Event, Message, MessageId},
+    ChannelRef, Discord,
+};
 
 mod module;
 use module::Module;
 
 mod bot;
-use bot::*;
+use bot::{Bot, BotThreadUnsafe};
 
 mod modules {
     pub mod admin;

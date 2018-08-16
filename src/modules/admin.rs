@@ -1,17 +1,16 @@
 use bot::Bot;
-use discord::model::*;
-use discord::*;
+use discord::{model::*, *};
 use module;
 use regex::Regex;
 use serde_json;
-use std;
-use std::collections::hash_map::HashMap;
-use std::collections::BTreeMap;
-use std::error;
-use std::fmt;
-use std::fs::File;
-use std::io;
-use std::sync::{RwLock, RwLockReadGuard};
+use std::{
+    self,
+    collections::{hash_map::HashMap, BTreeMap},
+    error, fmt,
+    fs::File,
+    io,
+    sync::{RwLock, RwLockReadGuard},
+};
 
 #[derive(Serialize, Deserialize)]
 struct Memory {

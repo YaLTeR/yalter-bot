@@ -3,8 +3,7 @@ use discord::model::Message;
 use hldemo;
 use hyper::Client;
 use module;
-use std::collections::hash_map::HashMap;
-use std::io::Read;
+use std::{collections::hash_map::HashMap, io::Read};
 
 pub struct Module<'a> {
     commands: HashMap<u32, &'a [&'a str]>,

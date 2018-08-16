@@ -1,15 +1,14 @@
 use bot::Bot;
 use discord::model::Message;
-use hyper::header::UserAgent;
-use hyper::{self, Client};
+use hyper::{self, header::UserAgent, Client};
 use module;
 use regex::Regex;
 use serde_json;
-use std::collections::hash_map::HashMap;
-use std::collections::BTreeMap;
-use std::error;
-use std::fmt;
-use std::time::Duration;
+use std::{
+    collections::{hash_map::HashMap, BTreeMap},
+    error, fmt,
+    time::Duration,
+};
 use url::Url;
 
 include!("speedruncom_types.rs");

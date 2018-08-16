@@ -1,8 +1,7 @@
 use bot::Bot;
 use discord::model::Message;
 use module;
-use std::collections::hash_map::HashMap;
-use std::env;
+use std::{collections::hash_map::HashMap, env};
 
 pub struct Module<'a> {
     commands: HashMap<u32, &'a [&'a str]>,

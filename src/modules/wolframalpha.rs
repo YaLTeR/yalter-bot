@@ -2,12 +2,9 @@ use bot::Bot;
 use discord::model::Message;
 use hyper::client::Client;
 use module;
-use std::collections::hash_map::HashMap;
-use std::env;
-use std::error::Error;
+use std::{collections::hash_map::HashMap, env, error::Error};
 use url::Url;
-use xml;
-use xml::reader::XmlEvent;
+use xml::{self, reader::XmlEvent};
 
 pub struct Module<'a> {
     commands: HashMap<u32, &'a [&'a str]>,

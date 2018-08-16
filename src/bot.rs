@@ -1,10 +1,10 @@
-use discord;
-use discord::model::*;
-use discord::*;
+use discord::{self, model::*, *};
 use hyper::status::StatusCode;
 use module::Module;
-use std::io::Read;
-use std::sync::{Arc, RwLock};
+use std::{
+    io::Read,
+    sync::{Arc, RwLock},
+};
 
 pub struct BotThreadUnsafe {
     connection: Connection,

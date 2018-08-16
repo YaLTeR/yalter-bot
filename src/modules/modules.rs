@@ -1,8 +1,7 @@
 use bot::Bot;
 use discord::model::Message;
 use module;
-use std::cmp::Ordering;
-use std::collections::hash_map::HashMap;
+use std::{cmp::Ordering, collections::hash_map::HashMap};
 
 struct Command<'a> {
     module: &'a module::Module,
