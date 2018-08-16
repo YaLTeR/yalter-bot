@@ -1,12 +1,12 @@
 use bot::Bot;
-use discord::*;
 use discord::model::*;
+use discord::*;
 use module;
 use regex::Regex;
 use serde_json;
 use std;
-use std::collections::BTreeMap;
 use std::collections::hash_map::HashMap;
+use std::collections::BTreeMap;
 use std::error;
 use std::fmt;
 use std::fs::File;
@@ -90,9 +90,10 @@ impl Memory {
 
     pub fn add_admin_roles(&mut self, server: ServerId, roles: &Vec<RoleId>) {
         {
-            let server_admin_roles = self.admin_roles
-                                         .entry(server.0.to_string())
-                                         .or_insert(Vec::new());
+            let server_admin_roles = self
+                .admin_roles
+                .entry(server.0.to_string())
+                .or_insert(Vec::new());
 
             for role in roles {
                 server_admin_roles.push(role.0);
@@ -173,9 +174,9 @@ impl<'a> module::Module for Module<'a> {
         };
 
         Ok(Box::new(Module {
-                        commands: map,
-                        memory: RwLock::new(memory),
-                    }))
+            commands: map,
+            memory: RwLock::new(memory),
+        }))
     }
 
     fn name(&self) -> &'static str {
@@ -238,8 +239,10 @@ impl<'a> module::Module for Module<'a> {
 
                         found
                     } else {
-                        bot.send(message.channel_id,
-                                 "Sorry, I couldn't get your member info.");
+                        bot.send(
+                            message.channel_id,
+                            "Sorry, I couldn't get your member info.",
+                        );
                         return;
                     }
                 } else {
@@ -253,7 +256,10 @@ impl<'a> module::Module for Module<'a> {
             }
 
             None => {
-                bot.send(message.channel_id, "Huh, I couldn't get this channel's info for some reason. Try again I guess?");
+                bot.send(
+                    message.channel_id,
+                    "Huh, I couldn't get this channel's info for some reason. Try again I guess?",
+                );
                 return;
             }
         };
@@ -271,11 +277,13 @@ impl<'a> module::Module for Module<'a> {
 }
 
 impl<'a> Module<'a> {
-    fn handle_admin(&self,
-                    bot: &Bot,
-                    message: &Message,
-                    text: &str,
-                    state: RwLockReadGuard<State>) {
+    fn handle_admin(
+        &self,
+        bot: &Bot,
+        message: &Message,
+        text: &str,
+        state: RwLockReadGuard<State>,
+    ) {
         if let Some(caps) = ADMIN_REGEX.captures(&text.to_lowercase()) {
             // No need to recheck, we did that in handle().
             let server = match state.find_channel(message.channel_id).unwrap() {
@@ -333,47 +341,52 @@ impl<'a> Module<'a> {
                 }
 
                 _ => {
-                    bot.send(message.channel_id,
-                             <Module as module::Module>::command_help_message(&self,
-                                                                              Commands::Admin as
-                                                                                  u32));
+                    bot.send(
+                        message.channel_id,
+                        <Module as module::Module>::command_help_message(
+                            &self,
+                            Commands::Admin as u32,
+                        ),
+                    );
                 }
             }
         } else {
-            bot.send(message.channel_id,
-                     <Module as module::Module>::command_help_message(&self,
-                                                                      Commands::Admin as u32));
+            bot.send(
+                message.channel_id,
+                <Module as module::Module>::command_help_message(&self, Commands::Admin as u32),
+            );
         }
     }
 
     fn handle_nuke(&self, bot: &Bot, message: &Message, text: &str) {
-        if let Some(amount) = NUKE_REGEX.captures(text)
-                                        .and_then(|x| x.get(2))
-                                        .and_then(|x| x.as_str().parse::<u64>().ok())
-                                        .map(|x| x + 1)
-                                        .and_then(|x| if x <= 1 { None } else { Some(x) })
+        if let Some(amount) = NUKE_REGEX
+            .captures(text)
+            .and_then(|x| x.get(2))
+            .and_then(|x| x.as_str().parse::<u64>().ok())
+            .map(|x| x + 1)
+            .and_then(|x| if x <= 1 { None } else { Some(x) })
         {
             let mentioned_user_ids: Vec<UserId> = message.mentions.iter().map(|x| x.id).collect();
 
-            if let Ok(recent_message_ids) =
-                bot.get_messages(message.channel_id, GetMessages::MostRecent, amount)
-                   .map(|x| {
+            if let Ok(recent_message_ids) = bot
+                .get_messages(message.channel_id, GetMessages::MostRecent, amount)
+                .map(|x| {
                     x.into_iter()
-                     .filter(|msg| {
-                                 mentioned_user_ids.len() == 0
-                                     || mentioned_user_ids.contains(&msg.author.id)
-                             })
-                     .map(|msg| msg.id)
-                     .collect::<Vec<MessageId>>()
+                        .filter(|msg| {
+                            mentioned_user_ids.len() == 0
+                                || mentioned_user_ids.contains(&msg.author.id)
+                        }).map(|msg| msg.id)
+                        .collect::<Vec<MessageId>>()
                 }) {
                 bot.delete_messages(message.channel_id, &recent_message_ids);
             } else {
                 bot.send(message.channel_id, "Error getting the recent messages.");
             }
         } else {
-            bot.send(message.channel_id,
-                     <Module as module::Module>::command_help_message(&self,
-                                                                      Commands::Nuke as u32));
+            bot.send(
+                message.channel_id,
+                <Module as module::Module>::command_help_message(&self, Commands::Nuke as u32),
+            );
         }
     }
 }

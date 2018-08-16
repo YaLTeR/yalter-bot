@@ -1,6 +1,6 @@
-use std::collections::hash_map::HashMap;
 use bot::Bot;
 use discord::model::{ChannelId, Message, MessageId};
+use std::collections::hash_map::HashMap;
 use std::marker::{Send, Sync};
 
 pub trait Module: Send + Sync {

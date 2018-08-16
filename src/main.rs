@@ -16,8 +16,8 @@ use std::sync::Arc;
 use std::thread;
 
 extern crate discord;
-use discord::{ChannelRef, Discord};
 use discord::model::*;
+use discord::{ChannelRef, Discord};
 
 mod module;
 use module::Module;
@@ -26,14 +26,14 @@ mod bot;
 use bot::*;
 
 mod modules {
-    pub mod hello;
-    pub mod modules;
-    pub mod fun;
-    pub mod speedruncom;
-    pub mod wolframalpha;
-    pub mod invite;
     pub mod admin;
     pub mod demos;
+    pub mod fun;
+    pub mod hello;
+    pub mod invite;
+    pub mod modules;
+    pub mod speedruncom;
+    pub mod wolframalpha;
 }
 
 fn parse_command(message: &str) -> Option<(&str, &str)> {
@@ -96,27 +96,33 @@ fn handle_command(bot: Arc<Bot>, message: Arc<Message>, command: &str, text: &st
         let text_copy = text.to_string();
 
         thread::spawn(move || {
-                          bot.get_modules()[i].handle(&bot, &message, id, &text_copy);
-                      });
+            bot.get_modules()[i].handle(&bot, &message, id, &text_copy);
+        });
     }
 }
 
 fn handle_attachment(bot: Arc<Bot>, message: Arc<Message>) {
-    thread::spawn(move || for module in bot.get_modules() {
-                      module.handle_attachment(&bot, &message);
-                  });
+    thread::spawn(move || {
+        for module in bot.get_modules() {
+            module.handle_attachment(&bot, &message);
+        }
+    });
 }
 
 fn handle_message_update(bot: Arc<Bot>, channel_id: ChannelId, id: MessageId) {
-    thread::spawn(move || for module in bot.get_modules() {
-                      module.handle_message_update(&bot, channel_id, id);
-                  });
+    thread::spawn(move || {
+        for module in bot.get_modules() {
+            module.handle_message_update(&bot, channel_id, id);
+        }
+    });
 }
 
 fn handle_message_delete(bot: Arc<Bot>, channel_id: ChannelId, id: MessageId) {
-    thread::spawn(move || for module in bot.get_modules() {
-                      module.handle_message_delete(&bot, channel_id, id);
-                  });
+    thread::spawn(move || {
+        for module in bot.get_modules() {
+            module.handle_message_delete(&bot, channel_id, id);
+        }
+    });
 }
 
 fn main() {
@@ -136,16 +142,14 @@ fn main() {
         modules::wolframalpha::Module::new(),
         modules::invite::Module::new(),
         modules::demos::Module::new(),
-    ]
-                  .into_iter()
-                  .filter_map(|m| match m {
-                                  Ok(m) => Some(m),
-                                  Err(err) => {
-                                      println!("{}", err);
-                                      None
-                                  }
-                              })
-                  .collect();
+    ].into_iter()
+    .filter_map(|m| match m {
+        Ok(m) => Some(m),
+        Err(err) => {
+            println!("{}", err);
+            None
+        }
+    }).collect();
 
     let mut bot = BotThreadUnsafe::new(discord, modules);
 
@@ -169,45 +173,48 @@ fn main() {
 
                 match state.find_channel(message.channel_id) {
                     Some(ChannelRef::Public(server, channel)) => {
-                        println!("[`{}` `#{}`] `{}`: `{}`",
-                                 server.name,
-                                 channel.name,
-                                 message.author.name,
-                                 message.content);
+                        println!(
+                            "[`{}` `#{}`] `{}`: `{}`",
+                            server.name, channel.name, message.author.name, message.content
+                        );
                     }
 
                     Some(ChannelRef::Group(group)) => {
-                        println!("[Group `{}`] `{}`: `{}`",
-                                 group.name(),
-                                 message.author.name,
-                                 message.content);
+                        println!(
+                            "[Group `{}`] `{}`: `{}`",
+                            group.name(),
+                            message.author.name,
+                            message.content
+                        );
                     }
 
                     Some(ChannelRef::Private(channel)) => {
                         if message.author.name == channel.recipient.name {
                             println!("[Private] `{}`: `{}`", message.author.name, message.content);
                         } else {
-                            println!("[Private] To `{}`: `{}`",
-                                     channel.recipient.name,
-                                     message.content);
+                            println!(
+                                "[Private] To `{}`: `{}`",
+                                channel.recipient.name, message.content
+                            );
                         }
                     }
 
-                    None => {
-                        println!("[Unknown Channel] `{}`: `{}`",
-                                 message.author.name,
-                                 message.content)
-                    }
+                    None => println!(
+                        "[Unknown Channel] `{}`: `{}`",
+                        message.author.name, message.content
+                    ),
                 }
 
                 let message_shared = Arc::new(message);
 
                 // Handle the commands.
                 if let Some((command, text)) = parse_command(&message_shared.content) {
-                    handle_command(bot.get_sync().clone(),
-                                   message_shared.clone(),
-                                   command,
-                                   text);
+                    handle_command(
+                        bot.get_sync().clone(),
+                        message_shared.clone(),
+                        command,
+                        text,
+                    );
                 }
 
                 // Handle the attachments.
@@ -253,8 +260,10 @@ mod tests {
 
     #[test]
     fn parse_command_usual() {
-        assert_eq!(Some(("my_cmd", "a bunch of arguments")),
-                   parse_command("!my_cmd a bunch of arguments"));
+        assert_eq!(
+            Some(("my_cmd", "a bunch of arguments")),
+            parse_command("!my_cmd a bunch of arguments")
+        );
     }
 
     #[test]
@@ -264,8 +273,10 @@ mod tests {
 
     #[test]
     fn parse_command_newlines() {
-        assert_eq!(Some(("blah", "\n\nargs\nare\nhere\n\n")),
-                   parse_command("!blah\n\n\nargs\nare\nhere\n\n"));
+        assert_eq!(
+            Some(("blah", "\n\nargs\nare\nhere\n\n")),
+            parse_command("!blah\n\n\nargs\nare\nhere\n\n")
+        );
     }
 
     #[test]
@@ -285,7 +296,9 @@ mod tests {
 
     #[test]
     fn parse_command_unicode() {
-        assert_eq!(Some(("КрутаяКоманда1337💖忠犬ハ", "チ公Да")),
-                   parse_command("!КрутаяКоманда1337💖忠犬ハ チ公Да"));
+        assert_eq!(
+            Some(("КрутаяКоманда1337💖忠犬ハ", "チ公Да")),
+            parse_command("!КрутаяКоманда1337💖忠犬ハ チ公Да")
+        );
     }
 }

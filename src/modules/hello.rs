@@ -42,32 +42,15 @@ impl<'a> module::Module for Module<'a> {
 
     fn handle(&self, bot: &Bot, message: &Message, _id: u32, _text: &str) {
         let emojis: [&'static str; 22] = [
-            "👌",
-            "👌🏻",
-            "👌🏼",
-            "👌🏽",
-            "👌🏾",
-            "👌🏿",
-            "👍",
-            "👍🏻",
-            "👍🏼",
-            "👍🏽",
-            "👍🏾",
-            "👍🏿",
-            "🌝",
-            "😄",
-            "🔥",
-            "💯",
-            "🆒",
-            "🚽",
-            "🚾",
-            "❤",
-            "⚠",
-            "✅",
+            "👌", "👌🏻", "👌🏼", "👌🏽", "👌🏾", "👌🏿", "👍", "👍🏻",
+            "👍🏼", "👍🏽", "👍🏾", "👍🏿", "🌝", "😄", "🔥", "💯", "🆒",
+            "🚽", "🚾", "❤", "⚠", "✅",
         ];
 
         let emoji = rand::thread_rng().choose(&emojis).unwrap();
-        bot.send(message.channel_id,
-                 &format!("Hi, {}! {}", message.author.mention(), emoji));
+        bot.send(
+            message.channel_id,
+            &format!("Hi, {}! {}", message.author.mention(), emoji),
+        );
     }
 }
