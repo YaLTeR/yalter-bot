@@ -3,8 +3,7 @@ use circular_queue::CircularQueue;
 use discord::ChannelRef;
 use discord::model::*;
 use module;
-use rand;
-use rand::distributions::{IndependentSample, Range};
+use rand::{self, Rng};
 use regex::Regex;
 use std::char;
 use std::collections::hash_map::HashMap;
@@ -190,7 +189,7 @@ impl<'a> Module<'a> {
             .write()
             .unwrap()
             .entry(channel_id)
-            .or_insert_with(|| CircularQueue::new(COMMAND_MESSAGE_QUEUE_SIZE))
+            .or_insert_with(|| CircularQueue::with_capacity(COMMAND_MESSAGE_QUEUE_SIZE))
             .push(CommandMessage {
                       command: command_id,
                       author,
@@ -281,8 +280,7 @@ impl<'a> Module<'a> {
                       .map(|x| if x == 0 { 100 } else { x })
                       .unwrap_or(100);
 
-        let mut rng = rand::thread_rng();
-        let number = Range::new(0, max).ind_sample(&mut rng);
+        let number = rand::thread_rng().gen_range(0, max);
 
         bot.send(message.channel_id,
                  &format!("{} rolled **{}**!", message.author.mention(), number));
@@ -296,11 +294,10 @@ impl<'a> Module<'a> {
                      <Module as module::Module>::command_help_message(&self,
                                                                       Commands::Pick as u32));
         } else {
-            let mut rng = rand::thread_rng();
-            let index = Range::new(0, options.len()).ind_sample(&mut rng);
+            let choice = rand::thread_rng().choose(&options).unwrap();
 
             bot.send(message.channel_id,
-                     &format!("{}: I pick {}!", message.author.mention(), options[index]));
+                     &format!("{}: I pick {}!", message.author.mention(), choice));
         }
     }
 

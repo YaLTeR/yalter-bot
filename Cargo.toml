@@ -4,16 +4,16 @@ version = "0.4.4"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 
 [dependencies]
-circular-queue = "0.1"
+circular-queue = "0.2"
 # discord = "0.8"
 discord = { git = "https://github.com/SpaceManiac/discord-rs.git", default-features = false }
 hldemo = "0.3"
 hyper = "0.9"
-lazy_static = "0.2"
-rand = "0.3"
-regex = "0.2"
+lazy_static = "1"
+rand = "0.5"
+regex = "1"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
 url = "1"
-xml-rs = "0.6"
+xml-rs = "0.8"

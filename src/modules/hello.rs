@@ -1,8 +1,7 @@
 use bot::Bot;
 use discord::model::Message;
 use module;
-use rand;
-use rand::distributions::{IndependentSample, Range};
+use rand::{self, Rng};
 use std::collections::hash_map::HashMap;
 
 pub struct Module<'a> {
@@ -67,10 +66,8 @@ impl<'a> module::Module for Module<'a> {
             "✅",
         ];
 
-        let mut rng = rand::thread_rng();
-        let index = Range::new(0, emojis.len()).ind_sample(&mut rng);
-
+        let emoji = rand::thread_rng().choose(&emojis).unwrap();
         bot.send(message.channel_id,
-                 &format!("Hi, {}! {}", message.author.mention(), emojis[index]));
+                 &format!("Hi, {}! {}", message.author.mention(), emoji));
     }
 }
