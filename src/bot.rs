@@ -21,20 +21,14 @@ impl BotThreadUnsafe {
     pub fn new(discord: Discord, modules: Vec<Box<Module>>) -> Self {
         // Connect.
         let (connection, ready) = discord.connect().expect("Connect failed");
-        println!(
-            "[Ready] {} is serving {} servers.",
-            ready.user.username,
-            ready.servers.len()
-        );
+        println!("[Ready] {} is serving {} servers.",
+                 ready.user.username,
+                 ready.servers.len());
 
-        BotThreadUnsafe {
-            connection,
-            sync_part: Arc::new(Bot {
-                discord,
-                state: RwLock::new(State::new(ready)),
-                modules,
-            }),
-        }
+        BotThreadUnsafe { connection,
+                          sync_part: Arc::new(Bot { discord,
+                                                    state: RwLock::new(State::new(ready)),
+                                                    modules, }), }
     }
 
     pub fn receive_event(&mut self) -> Option<Event> {
@@ -95,12 +89,11 @@ impl Bot {
     }
 
     #[allow(dead_code)]
-    pub fn edit_or_send_new(
-        &self,
-        channel: ChannelId,
-        message: &Result<Message>,
-        text: &str,
-    ) -> Result<Message> {
+    pub fn edit_or_send_new(&self,
+                            channel: ChannelId,
+                            message: &Result<Message>,
+                            text: &str)
+                            -> Result<Message> {
         match *message {
             Ok(ref msg) => self.discord.edit_message(msg.channel_id, msg.id, text),
 
@@ -115,11 +108,9 @@ impl Bot {
     pub fn send_pm(&self, user: UserId, text: &str, error_reporting_channel: ChannelId) {
         match self.discord.create_private_channel(user) {
             Ok(private_channel) => {
-                self.handle_error(
-                    error_reporting_channel,
-                    self.discord
-                        .send_message(private_channel.id, text, "", false),
-                );
+                self.handle_error(error_reporting_channel,
+                                  self.discord
+                                      .send_message(private_channel.id, text, "", false));
             }
 
             Err(err) => {
@@ -137,10 +128,8 @@ impl Bot {
     }
 
     pub fn send_file<R: Read>(&self, channel: ChannelId, text: &str, file: R, filename: &str) {
-        self.handle_error(
-            channel,
-            self.discord.send_file(channel, text, file, filename),
-        );
+        self.handle_error(channel,
+                          self.discord.send_file(channel, text, file, filename));
     }
 
     pub fn broadcast_typing(&self, channel: ChannelId) {
@@ -158,12 +147,11 @@ impl Bot {
         self.handle_error_and_return(self.discord.get_message(channel, message))
     }
 
-    pub fn get_messages(
-        &self,
-        channel: ChannelId,
-        what: GetMessages,
-        limit: u64,
-    ) -> Result<Vec<Message>> {
+    pub fn get_messages(&self,
+                        channel: ChannelId,
+                        what: GetMessages,
+                        limit: u64)
+                        -> Result<Vec<Message>> {
         self.handle_error_and_return(self.discord.get_messages(channel, what, Some(limit)))
     }
 
@@ -171,12 +159,11 @@ impl Bot {
         self.handle_error_and_return(self.discord.get_member(server, user))
     }
 
-    pub fn create_channel(
-        &self,
-        server: ServerId,
-        name: &str,
-        kind: ChannelType,
-    ) -> Result<Channel> {
+    pub fn create_channel(&self,
+                          server: ServerId,
+                          name: &str,
+                          kind: ChannelType)
+                          -> Result<Channel> {
         self.handle_error_and_return(self.discord.create_channel(server, name, kind))
     }
 

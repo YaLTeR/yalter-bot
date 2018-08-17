@@ -28,9 +28,9 @@ lazy_static! {
         Regex::new(r"\s*([+-]?[0-9]+(\.[0-9]*)?)\s*([CcFf]).*").unwrap();
     static ref ROLL_REGEX: Regex = Regex::new(r"\s*(([0-9]+)(\s|$))?.*").unwrap();
     static ref ROOM_ALLOW_PERMS: Permissions = permissions::VOICE_CONNECT
-        | permissions::VOICE_SPEAK
-        | permissions::MANAGE_CHANNELS
-        | permissions::MANAGE_ROLES;
+                                               | permissions::VOICE_SPEAK
+                                               | permissions::MANAGE_CHANNELS
+                                               | permissions::MANAGE_ROLES;
     static ref ROOM_DENY_PERMS: Permissions = permissions::VOICE_CONNECT;
 }
 
@@ -64,10 +64,9 @@ impl<'a> module::Module for Module<'a> {
         map.insert(Commands::Aesthetic as u32, &AESTHETIC);
         static SMALLCAPS: [&'static str; 1] = ["smallcaps"];
         map.insert(Commands::Smallcaps as u32, &SMALLCAPS);
-        Ok(Box::new(Module {
-            commands: map,
-            command_messages: RwLock::new(HashMap::new()),
-        }))
+        Ok(Box::new(Module { commands: map,
+                             command_messages:
+                                 RwLock::new(HashMap::new()), }))
     }
 
     fn name(&self) -> &'static str {
@@ -151,14 +150,12 @@ impl<'a> module::Module for Module<'a> {
     fn handle_message_update(&self, bot: &Bot, channel_id: ChannelId, id: MessageId) {
         if let Some(output) = self.find_command_message(channel_id, id) {
             if let Ok(message) = bot.get_message(channel_id, output.output) {
-                bot.edit(
-                    channel_id,
-                    output.output,
-                    &format!(
-                        "{:.2000}",
-                        &format!("{} said: {}", output.author.mention(), message.content)
-                    ),
-                );
+                bot.edit(channel_id,
+                         output.output,
+                         &format!("{:.2000}",
+                                  &format!("{} said: {}",
+                                           output.author.mention(),
+                                           message.content)));
             }
         }
     }
@@ -166,44 +163,37 @@ impl<'a> module::Module for Module<'a> {
     fn handle_message_delete(&self, bot: &Bot, channel_id: ChannelId, id: MessageId) {
         if let Some(output) = self.find_command_message(channel_id, id) {
             if let Ok(message) = bot.get_message(channel_id, output.output) {
-                bot.edit(
-                    channel_id,
-                    output.output,
-                    &format!(
-                        "{:.2000}",
-                        &format!("{} said: {}", output.author.mention(), message.content)
-                    ),
-                );
+                bot.edit(channel_id,
+                         output.output,
+                         &format!("{:.2000}",
+                                  &format!("{} said: {}",
+                                           output.author.mention(),
+                                           message.content)));
             }
         }
     }
 }
 
 impl<'a> Module<'a> {
-    fn remember_command_message(
-        &self,
-        channel_id: ChannelId,
-        command_id: MessageId,
-        author: UserId,
-        output_id: MessageId,
-    ) {
+    fn remember_command_message(&self,
+                                channel_id: ChannelId,
+                                command_id: MessageId,
+                                author: UserId,
+                                output_id: MessageId) {
         self.command_messages
             .write()
             .unwrap()
             .entry(channel_id)
             .or_insert_with(|| CircularQueue::with_capacity(COMMAND_MESSAGE_QUEUE_SIZE))
-            .push(CommandMessage {
-                command: command_id,
-                author,
-                output: output_id,
-            });
+            .push(CommandMessage { command: command_id,
+                                   author,
+                                   output: output_id, });
     }
 
-    fn find_command_message(
-        &self,
-        channel_id: ChannelId,
-        command_id: MessageId,
-    ) -> Option<CommandMessage> {
+    fn find_command_message(&self,
+                            channel_id: ChannelId,
+                            command_id: MessageId)
+                            -> Option<CommandMessage> {
         self.command_messages
             .read()
             .unwrap()
@@ -214,36 +204,30 @@ impl<'a> Module<'a> {
     fn handle_fraktur(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(frakturize).collect::<String>();
         if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
-            self.remember_command_message(
-                message.channel_id,
-                message.id,
-                message.author.id,
-                output.id,
-            );
+            self.remember_command_message(message.channel_id,
+                                          message.id,
+                                          message.author.id,
+                                          output.id);
         }
     }
 
     fn handle_aesthetic(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(make_fullwidth).collect::<String>();
         if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
-            self.remember_command_message(
-                message.channel_id,
-                message.id,
-                message.author.id,
-                output.id,
-            );
+            self.remember_command_message(message.channel_id,
+                                          message.id,
+                                          message.author.id,
+                                          output.id);
         }
     }
 
     fn handle_smallcaps(&self, bot: &Bot, message: &Message, text: &str) {
         let reply = text.chars().map(make_smallcaps).collect::<String>();
         if let Some(output) = bot.send_and_get(message.channel_id, &reply) {
-            self.remember_command_message(
-                message.channel_id,
-                message.id,
-                message.author.id,
-                output.id,
-            );
+            self.remember_command_message(message.channel_id,
+                                          message.id,
+                                          message.author.id,
+                                          output.id);
         }
     }
 
@@ -264,88 +248,72 @@ impl<'a> Module<'a> {
                 _ => panic!("Regex error in Fun::handle_temperature."),
             };
 
-            bot.send(
-                message.channel_id,
-                &format!(
-                    "{:.2}°{} is **{:.2}**°{}.",
-                    value,
-                    letter.to_uppercase().next().unwrap(),
-                    converted_value,
-                    converted_letter
-                ),
-            );
+            bot.send(message.channel_id,
+                     &format!("{:.2}°{} is **{:.2}**°{}.",
+                              value,
+                              letter.to_uppercase().next().unwrap(),
+                              converted_value,
+                              converted_letter));
         } else {
-            bot.send(
-                message.channel_id,
-                <Module as module::Module>::command_help_message(
-                    &self,
-                    Commands::Temperature as u32,
-                ),
-            );
+            bot.send(message.channel_id,
+                     <Module as module::Module>::command_help_message(&self,
+                                                                      Commands::Temperature
+                                                                      as u32));
         }
     }
 
     fn handle_roll(&self, bot: &Bot, message: &Message, text: &str) {
         let caps = ROLL_REGEX.captures(text).unwrap();
-        let max = caps
-            .get(2)
-            .and_then(|x| x.as_str().parse::<u64>().ok())
-            .map(|x| if x == 0 { 100 } else { x })
-            .unwrap_or(100);
+        let max = caps.get(2)
+                      .and_then(|x| x.as_str().parse::<u64>().ok())
+                      .map(|x| if x == 0 { 100 } else { x })
+                      .unwrap_or(100);
 
         let number = rand::thread_rng().gen_range(0, max);
 
-        bot.send(
-            message.channel_id,
-            &format!("{} rolled **{}**!", message.author.mention(), number),
-        );
+        bot.send(message.channel_id,
+                 &format!("{} rolled **{}**!", message.author.mention(), number));
     }
 
     fn handle_pick(&self, bot: &Bot, message: &Message, text: &str) {
         let options: Vec<&str> = text.split(';').filter(|x| !x.is_empty()).collect();
 
         if options.len() < 2 {
-            bot.send(
-                message.channel_id,
-                <Module as module::Module>::command_help_message(&self, Commands::Pick as u32),
-            );
+            bot.send(message.channel_id,
+                     <Module as module::Module>::command_help_message(&self,
+                                                                      Commands::Pick as u32));
         } else {
             let choice = rand::thread_rng().choose(&options).unwrap();
 
-            bot.send(
-                message.channel_id,
-                &format!("{}: I pick {}!", message.author.mention(), choice),
-            );
+            bot.send(message.channel_id,
+                     &format!("{}: I pick {}!", message.author.mention(), choice));
         }
     }
 
     fn handle_info(&self, bot: &Bot, message: &Message, _text: &str) {
-        match bot
-            .get_state()
-            .read()
-            .unwrap()
-            .find_channel(message.channel_id)
+        match bot.get_state()
+                 .read()
+                 .unwrap()
+                 .find_channel(message.channel_id)
         {
             Some(ChannelRef::Private(channel)) => {
                 bot.send(message.channel_id, &format!("```{:#?}```", channel));
             }
 
             Some(ChannelRef::Public(server, channel)) => {
-                let mut buf = format!(
-                    "```Server ID: {},\n\
-                     Owner ID: {},\n\
-                     Member count: {},\n\
-                     Icon: {},\n\
-                     Roles:",
-                    server.id.0,
-                    server.owner_id.0,
-                    server.member_count,
-                    if let Some(ref icon) = server.icon {
-                        &icon
-                    } else {
-                        "N/A"
-                    }
-                );
+                let mut buf = format!("```Server ID: {},\n\
+                                       Owner ID: {},\n\
+                                       Member count: {},\n\
+                                       Icon: {},\n\
+                                       Roles:",
+                                      server.id.0,
+                                      server.owner_id.0,
+                                      server.member_count,
+                                      if let Some(ref icon) = server.icon {
+                                          &icon
+                                      } else {
+                                          "N/A"
+                                      });
 
                 if server.roles.is_empty() {
                     buf.push_str(" N/A");
@@ -374,11 +342,10 @@ impl<'a> Module<'a> {
     }
 
     fn handle_room(&self, bot: &Bot, message: &Message, _text: &str) {
-        match bot
-            .get_state()
-            .read()
-            .unwrap()
-            .find_channel(message.channel_id)
+        match bot.get_state()
+                 .read()
+                 .unwrap()
+                 .find_channel(message.channel_id)
         {
             Some(ChannelRef::Private(_)) | Some(ChannelRef::Group(_)) => {
                 bot.send(message.channel_id, "Well, what do you expect me to do?");
@@ -388,11 +355,10 @@ impl<'a> Module<'a> {
                 if !message.mentions.is_empty() || !message.mention_roles.is_empty() {
                     let number = rand::random::<u64>();
 
-                    match bot.create_channel(
-                        server.id,
-                        &format!("🤖 - ybot - {:x}", number),
-                        ChannelType::Voice,
-                    ) {
+                    match bot.create_channel(server.id,
+                                             &format!("🤖 - ybot - {:x}", number),
+                                             ChannelType::Voice)
+                    {
                         Ok(Channel::Public(new_channel)) => {
                             // Ban @everyone from joining.
                             bot.create_permissions(
@@ -439,10 +405,8 @@ impl<'a> Module<'a> {
                         }
 
                         Ok(Channel::Private(_)) => {
-                            bot.send(
-                                message.channel_id,
-                                "I made a private channel?! How did I what.",
-                            );
+                            bot.send(message.channel_id,
+                                     "I made a private channel?! How did I what.");
                         }
 
                         Ok(Channel::Group(_)) => {
@@ -450,20 +414,15 @@ impl<'a> Module<'a> {
                         }
 
                         Err(err) => {
-                            bot.send(
-                                message.channel_id,
-                                &format!("Couldn't create a new channel: {} :/", err),
-                            );
+                            bot.send(message.channel_id,
+                                     &format!("Couldn't create a new channel: {} :/", err));
                         }
                     }
                 } else {
-                    bot.send(
-                        message.channel_id,
-                        <Module as module::Module>::command_help_message(
-                            &self,
-                            Commands::Room as u32,
-                        ),
-                    );
+                    bot.send(message.channel_id,
+                             <Module as module::Module>::command_help_message(&self,
+                                                                              Commands::Room
+                                                                              as u32));
                 }
             }
 

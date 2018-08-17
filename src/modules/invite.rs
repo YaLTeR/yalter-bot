@@ -25,10 +25,9 @@ impl<'a> module::Module for Module<'a> {
         static INVITE: [&'static str; 1] = ["invite"];
         let mut map: HashMap<u32, &[&str]> = HashMap::new();
         map.insert(Commands::Invite as u32, &INVITE);
-        INVITE_LINK
-            .as_ref()
-            .map_err(|s| s.clone())
-            .and(Ok(Box::new(Module { commands: map })))
+        INVITE_LINK.as_ref()
+                   .map_err(|s| s.clone())
+                   .and(Ok(Box::new(Module { commands: map })))
     }
 
     fn name(&self) -> &'static str {
@@ -52,13 +51,9 @@ impl<'a> module::Module for Module<'a> {
     }
 
     fn handle(&self, bot: &Bot, message: &Message, _id: u32, _text: &str) {
-        bot.send_pm(
-            message.author.id,
-            &format!(
-                "Follow this link to invite the bot to your server: {}",
-                INVITE_LINK.as_ref().unwrap()
-            ),
-            message.channel_id,
-        );
+        bot.send_pm(message.author.id,
+                    &format!("Follow this link to invite the bot to your server: {}",
+                             INVITE_LINK.as_ref().unwrap()),
+                    message.channel_id);
     }
 }

@@ -13,10 +13,9 @@ impl<'a> Command<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.names[0].cmp(&other.names[0]) {
             Ordering::Equal => match self.module.name().cmp(&other.module.name()) {
-                Ordering::Equal => self
-                    .module
-                    .command_description(self.id)
-                    .cmp(&other.module.command_description(other.id)),
+                Ordering::Equal => self.module
+                                       .command_description(self.id)
+                                       .cmp(&other.module.command_description(other.id)),
                 x => x,
             },
             x => x,
@@ -54,11 +53,9 @@ impl<'a> Module<'a> {
 
                 let mut commands: Vec<Command> = Vec::new();
                 for (&id, &cmds) in m.commands() {
-                    commands.push(Command {
-                        module: &**m,
-                        id,
-                        names: &cmds,
-                    });
+                    commands.push(Command { module: &**m,
+                                            id,
+                                            names: &cmds, });
                 }
 
                 if commands.is_empty() {
@@ -87,21 +84,17 @@ impl<'a> Module<'a> {
             }
         }
 
-        bot.send(
-            message.channel_id,
-            format!("There is no module called `{}`.", text).as_str(),
-        );
+        bot.send(message.channel_id,
+                 format!("There is no module called `{}`.", text).as_str());
     }
 
     fn handle_commands(&self, bot: &Bot, message: &Message, _text: &str) {
         let mut commands: Vec<Command> = Vec::new();
         for m in bot.get_modules() {
             for (&id, &cmds) in m.commands() {
-                commands.push(Command {
-                    module: &**m,
-                    id,
-                    names: &cmds,
-                });
+                commands.push(Command { module: &**m,
+                                        id,
+                                        names: &cmds, });
             }
         }
 
@@ -119,13 +112,9 @@ impl<'a> Module<'a> {
                 }
             }
 
-            buf.push_str(
-                format!(
-                    " (module `{}`): {}",
-                    c.module.name(),
-                    c.module.command_description(c.id)
-                ).as_str(),
-            );
+            buf.push_str(format!(" (module `{}`): {}",
+                                 c.module.name(),
+                                 c.module.command_description(c.id)).as_str());
         }
 
         bot.send(message.channel_id, &buf);
@@ -139,19 +128,15 @@ impl<'a> Module<'a> {
         };
 
         if text.is_empty() {
-            bot.send(
-                message.channel_id,
-                &format!(
-                    "Bot version {} using **discord-rs**.\n\
-                     `!mods` - list modules!\n\
-                     `!mod <name>` - list commands of a module!\n\
-                     `!help <command>` - help for a command!\n\
-                     \n\
-                     Or simply:\n\
-                     `!commands` - list all commands!",
-                    env!("CARGO_PKG_VERSION")
-                ),
-            );
+            bot.send(message.channel_id,
+                     &format!("Bot version {} using **discord-rs**.\n\
+                               `!mods` - list modules!\n\
+                               `!mod <name>` - list commands of a module!\n\
+                               `!help <command>` - help for a command!\n\
+                               \n\
+                               Or simply:\n\
+                               `!commands` - list all commands!",
+                              env!("CARGO_PKG_VERSION")));
             return;
         }
 
@@ -174,13 +159,9 @@ impl<'a> Module<'a> {
                             }
                         }
 
-                        buf.push_str(
-                            format!(
-                                ": {}\n{}",
-                                m.command_description(id),
-                                m.command_help_message(id)
-                            ).as_str(),
-                        );
+                        buf.push_str(format!(": {}\n{}",
+                                             m.command_description(id),
+                                             m.command_help_message(id)).as_str());
                         break;
                     }
                 }
@@ -188,13 +169,9 @@ impl<'a> Module<'a> {
         }
 
         if buf.is_empty() {
-            bot.send(
-                message.channel_id,
-                format!(
-                    "Could not find the `!{}` command in any of the modules!",
-                    text
-                ).as_str(),
-            );
+            bot.send(message.channel_id,
+                     format!("Could not find the `!{}` command in any of the modules!",
+                             text).as_str());
         } else {
             bot.send(message.channel_id, buf.as_str());
         }

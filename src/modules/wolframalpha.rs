@@ -17,8 +17,8 @@ lazy_static! {
         Url::parse("http://api.wolframalpha.com/v2/query").unwrap();
     static ref WOLFRAMALPHA_CLIENT_ID: Result<String, String> =
         env::var("YALTER_BOT_WOLFRAMALPHA_APPID").map_err(|_| {
-            "Please set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable".to_string()
-        });
+                     "Please set the YALTER_BOT_WOLFRAMALPHA_APPID environment variable".to_string()
+                 });
 }
 
 enum Commands {
@@ -26,8 +26,7 @@ enum Commands {
 }
 
 fn parse_bool<'de, D>(d: D) -> Result<bool, D::Error>
-where
-    D: Deserializer<'de>,
+    where D: Deserializer<'de>
 {
     use serde::de::Error;
 
@@ -99,10 +98,9 @@ impl<'a> module::Module for Module<'a> {
         static WA: [&'static str; 2] = ["wolphramalpha", "wa"];
         let mut map: HashMap<u32, &[&str]> = HashMap::new();
         map.insert(Commands::WA as u32, &WA);
-        WOLFRAMALPHA_CLIENT_ID
-            .as_ref()
-            .map_err(|s| s.clone())
-            .and(Ok(Box::new(Module { commands: map })))
+        WOLFRAMALPHA_CLIENT_ID.as_ref()
+                              .map_err(|s| s.clone())
+                              .and(Ok(Box::new(Module { commands: map })))
     }
 
     fn name(&self) -> &'static str {
@@ -127,10 +125,8 @@ impl<'a> module::Module for Module<'a> {
 
     fn handle(&self, bot: &Bot, message: &Message, _id: u32, text: &str) {
         if text.is_empty() {
-            bot.send(
-                message.channel_id,
-                self.command_help_message(Commands::WA as u32),
-            );
+            bot.send(message.channel_id,
+                     self.command_help_message(Commands::WA as u32));
             return;
         }
 
@@ -152,18 +148,17 @@ impl<'a> Module<'a> {
     fn handle_wa(&self, bot: &Bot, message: &Message, text: &str) -> Result<(), failure::Error> {
         let mut url = WOLFRAMALPHA_API_BASE.clone();
         url.query_pairs_mut()
-            .append_pair("appid", WOLFRAMALPHA_CLIENT_ID.as_ref().unwrap())
-            .append_pair("input", text);
+           .append_pair("appid", WOLFRAMALPHA_CLIENT_ID.as_ref().unwrap())
+           .append_pair("input", text);
 
         println!("URL: {}", url.as_str());
 
         let client = Client::new();
-        let response = client
-            .get(url.as_str())
-            .send()
-            .context("Couldn't communicate with http://api.wolframalpha.com. :(")?;
-        let result: QueryResult = deserialize(response)
-            .context("Couldn't parse Wolfram!Alpha's response, call YaLTeR!")?;
+        let response = client.get(url.as_str())
+                             .send()
+                             .context("Couldn't communicate with http://api.wolframalpha.com. :(")?;
+        let result: QueryResult =
+            deserialize(response).context("Couldn't parse Wolfram!Alpha's response, call YaLTeR!")?;
 
         // TODO: this returns an <error> tag too, which gets clashed with the error field.
         ensure!(!result.error, "Invalid request, call YaLTeR!");
@@ -175,10 +170,7 @@ impl<'a> Module<'a> {
                 let did_you_means = did_you_means.did_you_means;
 
                 if did_you_means.len() == 1 {
-                    text.push_str(&format!(
-                        "\n\nDid you mean `{}`?",
-                        did_you_means[0].contents
-                    ));
+                    text.push_str(&format!("\n\nDid you mean `{}`?", did_you_means[0].contents));
                 } else if did_you_means.len() > 1 {
                     text.push_str("\n\nDid you mean:");
 
@@ -195,16 +187,13 @@ impl<'a> Module<'a> {
             let mut text = text.to_owned();
 
             if let Some(subpod) = pod.subpods.iter().find(|s| {
-                !s.plaintext
-                    .as_ref()
-                    .map(String::as_ref)
-                    .unwrap_or("")
-                    .is_empty()
-            }) {
-                text.push_str(&format!(
-                    "\n```\n{}\n```",
-                    subpod.plaintext.as_ref().unwrap()
-                ));
+                                                              !s.plaintext
+                                                                .as_ref()
+                                                                .map(String::as_ref)
+                                                                .unwrap_or("")
+                                                                .is_empty()
+                                                          }) {
+                text.push_str(&format!("\n```\n{}\n```", subpod.plaintext.as_ref().unwrap()));
             }
 
             if let Some(subpod) = pod.subpods.iter().find(|s| s.image.is_some()) {
@@ -235,21 +224,17 @@ impl<'a> Module<'a> {
         if let Some(input_interpretation) =
             result.pods.iter().find(|pod| is_input_interpretation(pod))
         {
-            send_pod_contents(
-                input_interpretation,
-                "Input interpretation:",
-                "input_interpretation.gif",
-            );
+            send_pod_contents(input_interpretation,
+                              "Input interpretation:",
+                              "input_interpretation.gif");
         }
 
         if let Some(results) = result.pods.iter().find(|pod| !is_input_interpretation(pod)) {
             send_pod_contents(results, "Result:", "result.gif");
         } else {
-            bot.send(
-                message.channel_id,
-                "Wolfram!Alpha didn't return a result pod. \
-                 This probably means that the standard computation time exceeded.",
-            );
+            bot.send(message.channel_id,
+                     "Wolfram!Alpha didn't return a result pod. \
+                      This probably means that the standard computation time exceeded.");
         }
 
         Ok(())

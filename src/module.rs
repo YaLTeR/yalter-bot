@@ -7,8 +7,7 @@ use std::{
 
 pub trait Module: Send + Sync {
     fn new() -> Result<Box<Module>, String>
-    where
-        Self: Sized;
+        where Self: Sized;
 
     // Module name.
     fn name(&self) -> &'static str;
