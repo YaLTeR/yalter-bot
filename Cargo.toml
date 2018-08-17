@@ -1,6 +1,6 @@
 [package]
 name = "yalter-bot"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 
 [dependencies]

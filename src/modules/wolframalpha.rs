@@ -52,6 +52,9 @@ struct QueryResult {
 
     #[serde(rename = "pod", default)]
     pods: Vec<Pod>,
+
+    #[serde(rename = "didyoumeans")]
+    did_you_means: Option<DidYouMeans>,
 }
 
 #[derive(Deserialize)]
@@ -75,6 +78,20 @@ struct SubPod {
 #[serde(rename = "img")]
 struct Img {
     src: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename = "didyoumeans")]
+struct DidYouMeans {
+    #[serde(rename = "didyoumean", default)]
+    did_you_means: Vec<DidYouMean>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename = "didyoumean")]
+struct DidYouMean {
+    #[serde(rename = "$value")]
+    contents: String,
 }
 
 impl<'a> module::Module for Module<'a> {
@@ -152,8 +169,26 @@ impl<'a> Module<'a> {
         ensure!(!result.error, "Invalid request, call YaLTeR!");
 
         if !result.success {
-            // TODO: print tips and whatnot.
-            bail!("Wolphram!Alpha couldn't understand your input. :/");
+            let mut text = "Wolphram!Alpha couldn't understand your input. :/".to_owned();
+
+            if let Some(did_you_means) = result.did_you_means {
+                let did_you_means = did_you_means.did_you_means;
+
+                if did_you_means.len() == 1 {
+                    text.push_str(&format!(
+                        "\n\nDid you mean `{}`?",
+                        did_you_means[0].contents
+                    ));
+                } else if did_you_means.len() > 1 {
+                    text.push_str("\n\nDid you mean:");
+
+                    for dym in did_you_means {
+                        text.push_str(&format!("\n• `{}`", dym.contents));
+                    }
+                }
+            }
+
+            bail!(text);
         }
 
         let send_pod_contents = |pod: &Pod, text: &str, image_filename| {
